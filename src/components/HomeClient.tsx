@@ -566,13 +566,6 @@ export default function HomeClient() {
                     )}
                   </div>
 
-                  {(periodFrom || periodTo) && (
-                    <div className="mt-3">
-                      <div className="text-sm text-slate-500">기간: {periodFrom ? formatDateWithWeekday(periodFrom) : "—"}{periodFrom && periodTo ? ` ~ ${formatDateWithWeekday(periodTo)}` : periodTo && !periodFrom ? ` ~ ${formatDateWithWeekday(periodTo)}` : ""}</div>
-                      <div className="text-xs text-slate-500 mt-1">기간을 선택하면 링크를 통해 다른 사용자도 확인할 수 있습니다.</div>
-                    </div>
-                  )}
-
                   {receiptUrls.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {receiptUrls.map((u, i) => (
