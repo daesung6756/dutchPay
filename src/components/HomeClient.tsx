@@ -29,6 +29,7 @@ export default function HomeClient() {
   const [now, setNow] = useState<string>("");
   const [showForm, setShowForm] = useState<boolean>(true);
   const [createViewerOnly, setCreateViewerOnly] = useState<boolean>(false);
+  const [account, setAccount] = useState<string>("");
   const [toasts, setToasts] = useState<Array<{ id: number; msg: string; duration: number }>>([]);
   const toastId = useRef(0);
   const MAX_IMAGES = 3;
@@ -52,6 +53,7 @@ export default function HomeClient() {
           setTitle(data.title ?? "");
           setPeriodFrom(data.period?.from ?? "");
           setPeriodTo(data.period?.to ?? "");
+          setAccount(data.account ?? data.meta?.account ?? "");
           setTotal((data.total ?? "") as number | "");
           const parsed: Participant[] = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
           setParticipants(parsed);
@@ -88,6 +90,7 @@ export default function HomeClient() {
             setTitle(data.title ?? "");
             setPeriodFrom(data.period?.from ?? "");
             setPeriodTo(data.period?.to ?? "");
+            setAccount(data.account ?? data.meta?.account ?? "");
             setTotal((data.total ?? "") as number | "");
             const parsed: Participant[] = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
             setParticipants(parsed);
@@ -170,6 +173,7 @@ export default function HomeClient() {
     setTotal("");
     setPeriodFrom("");
     setPeriodTo("");
+    setAccount("");
     setParticipants([]);
     setLink("");
     if (receiptUrls.length > 0) {
@@ -336,6 +340,10 @@ export default function HomeClient() {
         participants: participants.map(({ id, name, share }) => ({ id, name, share }))
       };
 
+      if (account) {
+        payload.account = account;
+      }
+
       if (createViewerOnly) {
         payload.meta = { ...(payload.meta ?? {}), viewerOnly: true };
       }
@@ -452,6 +460,9 @@ export default function HomeClient() {
                 <CardHeader>
                 <CardTitle>{title || "더치페이"}</CardTitle>
                 <CardDescription>{now}</CardDescription>
+                {account && (
+                  <div className="mt-1 text-sm text-slate-600">계좌: {account}</div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4 items-start">
@@ -538,6 +549,11 @@ export default function HomeClient() {
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
+                <Label className="block mb-1">계좌 정보</Label>
+                <Input placeholder="은행 / 계좌번호 / 예금주" value={account} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccount(e.target.value)} />
+                <div className="mt-1 text-xs text-slate-500">선택 입력 — 링크에 포함됩니다.</div>
               </div>
 
               <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
