@@ -13,6 +13,16 @@ declare module "@/components/ui" {
   export const CardAction: any
   export const CardDescription: any
   export const CardContent: any
+  export const Dialog: any
+  export const DialogTrigger: any
+  export const DialogContent: any
+  export const DialogHeader: any
+  export const DialogFooter: any
+  export const DialogTitle: any
+  export const DialogDescription: any
+  export const DialogClose: any
+  export const DialogOverlay: any
+  export const DialogPortal: any
   const _default: any
   export default _default
 }
