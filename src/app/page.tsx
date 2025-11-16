@@ -549,7 +549,7 @@ export default function Home() {
               </div>
 
               <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label>총액 (숫자)</Label>
+                <Label className="font-semibold">총액 (숫자)</Label>
                 <div className="mt-2 flex items-center gap-3">
                   <Input className="flex-1" type="number" value={total as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTotal(e.target.value === "" ? "" : Number(e.target.value))} />
                 </div>
@@ -569,7 +569,7 @@ export default function Home() {
 
               <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
                 <div className="flex justify-between">
-                  <Label>참여자</Label>
+                  <Label className="font-semibold">참여자</Label>
                   <div className="mt-2">
                     <Button onClick={addParticipant}>참여자 추가</Button>
                   </div>
@@ -589,7 +589,7 @@ export default function Home() {
               </div>
 
               <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label>영수증 이미지</Label>
+                <Label className="font-semibold">영수증 이미지</Label>
                 <div className="mt-2">
                   <input ref={receiptInputRef} type="file" accept="image/*" multiple onChange={onReceiptChange} className="hidden" />
                   <div className="inline-flex items-center gap-3">
@@ -638,7 +638,7 @@ export default function Home() {
 
               {link && (
                 <div className="mt-4">
-                  <Label>생성된 링크</Label>
+                  <Label className="font-semibold">생성된 링크</Label>
                   <div className="mt-2 flex gap-2">
                     <Input ref={linkInputRef} className="flex-1" value={link} readOnly />
                     <Button onClick={copyLink}>복사</Button>
