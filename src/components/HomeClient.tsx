@@ -3,119 +3,180 @@
 import React, { useEffect, useState, useRef } from "react";
 import { encodePayload, decodePayload } from "@/lib/encoding";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button, Input, Label, Card, CardHeader, CardTitle, CardDescription, CardContent, Dialog, DialogContent, DialogTitle, DialogDescription, DialogClose } from "@/components/ui";
+import { Button, Input, Label, Card, CardHeader, CardTitle, CardContent, Select } from "@/components/ui";
+import DatePicker from "@/components/DatePicker";
+import { SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import useDutchPayStore, { DutchPayState } from "@/store/useDutchPayStore";
 
 type Participant = { id: string; name: string; share?: number };
+type DetailItem = { id: string; title: string; amount: string };
 
 export default function HomeClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [title, setTitle] = useState<string>("");
-  const [periodFrom, setPeriodFrom] = useState<string>("");
-  const [periodTo, setPeriodTo] = useState<string>("");
-  const [total, setTotal] = useState<number | "">("");
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [link, setLink] = useState<string>("");
-  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
-  const [receiptUrls, setReceiptUrls] = useState<string[]>([]);
-  const [receiptMetas, setReceiptMetas] = useState<Array<{ name: string; origSize: number | null; compSize: number | null }>>([]);
-  const receiptInputRef = useRef<HTMLInputElement | null>(null);
+  const title = useDutchPayStore((s: DutchPayState) => s.title);
+  const setTitle = useDutchPayStore((s: DutchPayState) => s.setTitle);
+  const periodFrom = useDutchPayStore((s: DutchPayState) => s.periodFrom);
+  const setPeriodFrom = useDutchPayStore((s: DutchPayState) => s.setPeriodFrom);
+  const periodTo = useDutchPayStore((s: DutchPayState) => s.periodTo);
+  const setPeriodTo = useDutchPayStore((s: DutchPayState) => s.setPeriodTo);
+  const total = useDutchPayStore((s: DutchPayState) => s.total);
+  const setTotal = useDutchPayStore((s: DutchPayState) => s.setTotal);
+  const participants = useDutchPayStore((s: DutchPayState) => s.participants);
+  const setParticipants = useDutchPayStore((s: DutchPayState) => s.setParticipants);
+  const link = useDutchPayStore((s: DutchPayState) => s.link);
+  const setLink = useDutchPayStore((s: DutchPayState) => s.setLink);
   const linkInputRef = useRef<HTMLInputElement | null>(null);
-  const periodFromRef = useRef<HTMLInputElement | null>(null);
-  const periodToRef = useRef<HTMLInputElement | null>(null);
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
-  const [now, setNow] = useState<string>("");
-  const [showForm, setShowForm] = useState<boolean>(true);
-  const [createViewerOnly, setCreateViewerOnly] = useState<boolean>(false);
-  const [account, setAccount] = useState<string>("");
-  const [toasts, setToasts] = useState<Array<{ id: number; msg: string; duration: number }>>([]);
-  const toastId = useRef(0);
-  const MAX_IMAGES = 3;
+  const showForm = useDutchPayStore((s: DutchPayState) => s.showForm);
+  const setShowForm = useDutchPayStore((s: DutchPayState) => s.setShowForm);
+  const accountBank = useDutchPayStore((s: DutchPayState) => s.accountBank);
+  const setAccountBank = useDutchPayStore((s: DutchPayState) => s.setAccountBank);
+  const accountNumber = useDutchPayStore((s: DutchPayState) => s.accountNumber);
+  const setAccountNumber = useDutchPayStore((s: DutchPayState) => s.setAccountNumber);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const detailOpen = useDutchPayStore((s: DutchPayState) => s.detailOpen);
+  const setDetailOpen = useDutchPayStore((s: DutchPayState) => s.setDetailOpen);
+  const detailItems = useDutchPayStore((s: DutchPayState) => s.detailItems);
+  const setDetailItems = useDutchPayStore((s: DutchPayState) => s.setDetailItems);
+  const loading = useDutchPayStore((s: DutchPayState) => s.loading);
+  const setLoading = useDutchPayStore((s: DutchPayState) => s.setLoading);
+  const toasts = useDutchPayStore((s: DutchPayState) => s.toasts);
+  const showToast = useDutchPayStore((s: DutchPayState) => s.showToast);
 
-  function showToast(msg: string, duration = 2000) {
-    const id = ++toastId.current;
-    setToasts((t) => [...t, { id, msg, duration }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), duration + 220);
+  function getAccountString() {
+    if (!accountNumber) return "";
+    return `${accountNumber}`;
+  }
+
+  async function copyAccount() {
+    const txt = getAccountString();
+    if (!txt) {
+      showToast("복사할 계좌 정보가 없습니다.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(txt);
+      showToast("계좌번호가 복사되었습니다.");
+    } catch (e) {
+      console.warn("clipboard write failed", e);
+      showToast("복사에 실패했습니다.");
+    }
+  }
+
+  useEffect(() => {
+    const w = window as any;
+    if (!w.dutchpay) w.dutchpay = {};
+    w.dutchpay.getFormState = () => ({
+      title,
+      periodFrom,
+      periodTo,
+      total,
+      participants,
+      accountBank,
+      accountNumber,
+      detailItems,
+    });
+    w.dutchpay.resetForm = () => {
+      try {
+        resetAll();
+      } catch (e) {}
+    };
+    w.dutchpay.showToast = (msg: string, duration = 2000) => {
+      try {
+        showToast(msg, duration);
+      } catch (e) {}
+    };
+    return () => {
+      try {
+        if (w.dutchpay) {
+          delete w.dutchpay.getFormState;
+          delete w.dutchpay.resetForm;
+          delete w.dutchpay.showToast;
+        }
+      } catch (e) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, periodFrom, periodTo, total, participants, accountBank, accountNumber, detailItems]);
+
+  function validateAccountNumber(num: string): boolean {
+    if (!num) return true;
+    const ok = /^\d+$/.test(num);
+    setAccountError(ok ? null : "계좌번호는 숫자만 입력하세요.");
+    return ok;
   }
 
   useEffect(() => {
     async function restoreFromParams() {
-      const p = searchParams.get("p");
-      const viewParam = searchParams.get("view");
-      if (viewParam === "1") {
-        setShowForm(false);
-      }
-      if (p) {
-        const data = decodePayload(p);
-        if (data) {
-          setTitle(data.title ?? "");
-          setPeriodFrom(data.period?.from ?? "");
-          setPeriodTo(data.period?.to ?? "");
-          setAccount(data.account ?? data.meta?.account ?? "");
-          setTotal((data.total ?? "") as number | "");
-          const parsed: Participant[] = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
-          setParticipants(parsed);
-          if (Array.isArray(data.receipts) && data.receipts.length > 0) {
-            const receipts = data.receipts as string[];
-            setReceiptUrls(receipts);
-            const metas = receipts.map((r: string, i: number) => {
-              let compSize: number | null = null;
-              try {
-                const idx = r.indexOf(",");
-                if (idx >= 0) {
-                  const b64 = r.slice(idx + 1);
-                  compSize = Math.ceil((b64.length * 3) / 4);
-                }
-              } catch (e) {
-                compSize = null;
-              }
-              return { name: `receipt-${i + 1}`, origSize: null, compSize };
-            });
-            setReceiptMetas(metas);
-            setReceiptFiles([]);
-          }
-          if (data.meta?.viewerOnly) setShowForm(false);
-            if (data.meta?.viewerOnly) setShowForm(false);
-        }
-      }
+      setLoading(true);
+      try {
+        const p = searchParams.get("p");
+        const viewParam = searchParams.get("view");
+        if (viewParam === "1") setShowForm(false);
 
-      const id = searchParams.get('id');
-      if (id) {
-        try {
-          const res = await fetch(`/api/payload?id=${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const data = await res.json();
+        if (p) {
+          const data = decodePayload(p);
+          if (data) {
             setTitle(data.title ?? "");
             setPeriodFrom(data.period?.from ?? "");
             setPeriodTo(data.period?.to ?? "");
-            setAccount(data.account ?? data.meta?.account ?? "");
+            const acc = data.account ?? data.meta?.account;
+            if (acc) {
+              if (typeof acc === "string") {
+                setAccountNumber(acc);
+              } else if (typeof acc === "object") {
+                setAccountBank(acc.bank ?? "");
+                setAccountNumber(acc.number ?? acc.num ?? acc.account ?? "");
+              }
+            }
             setTotal((data.total ?? "") as number | "");
+            if (Array.isArray(data.detailItems)) {
+              setDetailItems(
+                data.detailItems.map((di: any, i: number) => ({ id: di.id ?? `d${i + 1}`, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" }))
+              );
+            }
             const parsed: Participant[] = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
             setParticipants(parsed);
-            if (Array.isArray(data.receipts) && data.receipts.length > 0) {
-              setReceiptUrls(data.receipts as string[]);
-              const metas = (data.receipts as string[]).map((r: string, i: number) => {
-                let compSize: number | null = null;
-                try {
-                  const idx = r.indexOf(',');
-                  if (idx >= 0) {
-                    const b64 = r.slice(idx + 1);
-                    compSize = Math.ceil((b64.length * 3) / 4);
-                  }
-                } catch (e) {
-                  compSize = null;
-                }
-                return { name: `receipt-${i + 1}`, origSize: null, compSize };
-              });
-              setReceiptMetas(metas);
-              setReceiptFiles([]);
-            }
+            if (data.meta?.viewerOnly) setShowForm(false);
           }
-        } catch (e) {
-          console.warn('failed to fetch payload by id', e);
         }
+
+        const id = searchParams.get("id");
+        if (id) {
+          try {
+            const res = await fetch(`/api/payload?id=${encodeURIComponent(id)}`);
+            if (res.ok) {
+              const data = await res.json();
+              setTitle(data.title ?? "");
+              setPeriodFrom(data.period?.from ?? "");
+              setPeriodTo(data.period?.to ?? "");
+              const acc2 = data.account ?? data.meta?.account;
+              if (acc2) {
+                if (typeof acc2 === "string") {
+                  setAccountNumber(acc2);
+                } else if (typeof acc2 === "object") {
+                  setAccountBank(acc2.bank ?? "");
+                  setAccountNumber(acc2.number ?? acc2.num ?? acc2.account ?? "");
+                }
+              }
+              setTotal((data.total ?? "") as number | "");
+              if (Array.isArray(data.detailItems)) {
+                setDetailItems(
+                  data.detailItems.map((di: any, i: number) => ({ id: di.id ?? `d${i + 1}`, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" }))
+                );
+              } else {
+                setDetailItems([]);
+              }
+              const parsed: Participant[] = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
+              setParticipants(parsed);
+              if (data.meta?.viewerOnly) setShowForm(false);
+            }
+          } catch (e) {
+            console.warn("failed to fetch payload by id", e);
+          }
+        }
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -124,16 +185,12 @@ export default function HomeClient() {
   }, [searchParams]);
 
   useEffect(() => {
-    setNow(new Date().toLocaleString());
-  }, []);
-
-  useEffect(() => {
     const t = Number(total) || 0;
     const n = participants.length;
     if (n === 0) return;
     const base = Math.floor(t / n);
     let rem = t - base * n;
-    const updated = participants.map((pt) => {
+    const updated = participants.map((pt: Participant) => {
       const extra = rem > 0 ? 1 : 0;
       if (rem > 0) rem -= 1;
       return { ...pt, share: base + extra };
@@ -143,543 +200,302 @@ export default function HomeClient() {
   }, [total, participants.length]);
 
   function addParticipant() {
-    setParticipants((prev) => [...prev, { id: `p${prev.length + 1}`, name: "" }]);
+    const cur = useDutchPayStore.getState().participants;
+    setParticipants([...cur, { id: `p${cur.length + 1}`, name: "" }]);
   }
-
   function removeParticipant(id: string) {
-    setParticipants((prev) => prev.filter((p) => p.id !== id).map((p, i) => ({ ...p, id: `p${i + 1}`})));
+    const cur = useDutchPayStore.getState().participants;
+    const next = cur.filter((p: Participant) => p.id !== id).map((p: Participant, i: number) => ({ ...p, id: `p${i + 1}`}));
+    setParticipants(next);
   }
-
   function updateParticipantName(id: string, name: string) {
-    setParticipants((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
+    const cur = useDutchPayStore.getState().participants;
+    setParticipants(cur.map((p: Participant) => (p.id === id ? { ...p, name } : p)));
   }
-
   function addToTotal(amount: number) {
-    setTotal((prev) => {
-      const cur = Number(prev) || 0;
-      return cur + amount;
-    });
-    try {
-      showToast(`${amount.toLocaleString()}원 추가됨`);
-    } catch (e) {}
+    const cur = Number(total) || 0;
+    setTotal(cur + amount);
+    try { showToast(`${amount.toLocaleString()}원 추가됨`); } catch (e) {}
   }
-
-  function resetTotal() {
-    setTotal("");
-  }
+  function resetTotal() { setTotal(""); }
+  function toggleDetails(open?: boolean) { if (typeof open === "boolean") setDetailOpen(open); else { const cur = useDutchPayStore.getState().detailOpen; setDetailOpen(!cur); } }
+  function addDetailItem() { const id = `d${Date.now()}`; const cur = useDutchPayStore.getState().detailItems; setDetailItems([...cur, { id, title: "", amount: "" }]); setDetailOpen(true); }
+  function updateDetailItem(id: string, field: "title" | "amount", value: string) { if (field === 'amount') { const digits = value.replace(/\D/g, ''); const cur = useDutchPayStore.getState().detailItems; setDetailItems(cur.map((it: DetailItem) => it.id === id ? { ...it, amount: digits } : it)); } else { const cur = useDutchPayStore.getState().detailItems; setDetailItems(cur.map((it: DetailItem) => it.id === id ? { ...it, title: value } : it)); } }
+  function removeDetailItem(id: string) { const cur = useDutchPayStore.getState().detailItems; setDetailItems(cur.filter((it: DetailItem) => it.id !== id)); }
 
   function resetAll() {
-    setTitle("");
-    setTotal("");
-    setPeriodFrom("");
-    setPeriodTo("");
-    setAccount("");
-    setParticipants([]);
-    setLink("");
-    if (receiptUrls.length > 0) {
-      receiptUrls.forEach((u) => {
-        if (u && u.startsWith("blob:")) URL.revokeObjectURL(u);
-      });
-      setReceiptUrls([]);
-      setReceiptFiles([]);
-      setReceiptMetas([]);
-    }
-    try {
-      router.replace(location.pathname);
-    } catch (e) {
-      // ignore
-    }
+    setTitle(""); setTotal(""); setPeriodFrom(""); setPeriodTo(""); setAccountBank(""); setAccountNumber(""); setParticipants([]); setLink("");
+    try { router.replace(location.pathname); } catch (e) {}
   }
 
-  function onReceiptChange(e: React.ChangeEvent<HTMLInputElement>) {
-    (async () => {
-      const files = Array.from(e.target.files ?? []);
-      if (files.length === 0) return;
+  useEffect(() => {
+    if (!detailItems || detailItems.length === 0) return;
+    const hasAmount = detailItems.some((it: DetailItem) => it.amount !== "" && !isNaN(Number(it.amount)));
+    if (!hasAmount) return;
+    const sum = detailItems.reduce((s: number, it: DetailItem) => s + (typeof it.amount === 'number' ? it.amount as number : (it.amount === '' ? 0 : Number(it.amount))), 0);
+    setTotal(sum);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailItems]);
 
-      const currently = receiptFiles.length;
-      if (currently >= MAX_IMAGES) {
-        alert(`이미지는 최대 ${MAX_IMAGES}장까지 업로드할 수 있습니다.`);
-        if (receiptInputRef.current) receiptInputRef.current.value = "";
-        return;
-      }
-      const allowedSlots = MAX_IMAGES - currently;
-      let acceptedFiles = files.slice(0, allowedSlots);
-      if (acceptedFiles.length < files.length) {
-        alert(`업로드할 수 있는 최대 이미지 수(${MAX_IMAGES})를 초과하여 일부만 처리합니다.`);
-      }
-
-      const MAX_W = 600;
-      const MAX_H = 600;
-      const QUALITY = 0.5;
-
-      const compressedResults: { file: File; url: string }[] = [];
-
-      await Promise.all(
-        acceptedFiles.map(async (f) => {
-          try {
-            const blob = await compressImageFile(f, MAX_W, MAX_H, QUALITY);
-            const newFile = new File([blob], f.name, { type: "image/jpeg" });
-            const url = URL.createObjectURL(newFile);
-            compressedResults.push({ file: newFile, url });
-          } catch (err) {
-            const url = URL.createObjectURL(f);
-            compressedResults.push({ file: f, url });
-          }
-        })
-      );
-
-      setReceiptFiles((prev) => [...prev, ...compressedResults.map((r) => r.file)]);
-      setReceiptUrls((prev) => [...prev, ...compressedResults.map((r) => r.url)]);
-      setReceiptMetas((prev) => [
-        ...prev,
-        ...compressedResults.map((r, idx) => ({ name: r.file.name, origSize: acceptedFiles[idx]?.size ?? null, compSize: r.file.size ?? null }))
-      ]);
-
-      if (receiptInputRef.current) receiptInputRef.current.value = "";
-    })();
-  }
-
-  function compressImageFile(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.76): Promise<Blob> {
-    return new Promise<Blob>((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        try {
-          let { width, height } = img;
-          const ratio = Math.min(1, Math.min(maxWidth / width, maxHeight / height));
-          const w = Math.max(1, Math.round(width * ratio));
-          const h = Math.max(1, Math.round(height * ratio));
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) throw new Error("Canvas context not available");
-          ctx.drawImage(img, 0, 0, w, h);
-          canvas.toBlob(
-            (blob) => {
-              URL.revokeObjectURL(url);
-              if (blob) resolve(blob);
-              else reject(new Error("Compression failed: no blob"));
-            },
-            "image/jpeg",
-            quality
-          );
-        } catch (e) {
-          URL.revokeObjectURL(url);
-          reject(e);
-        }
-      };
-      img.onerror = (e) => {
-        URL.revokeObjectURL(url);
-        reject(e);
-      };
-      img.src = url;
-    });
-  }
-
-  function fileToDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function removeReceiptAt(index: number) {
-    setReceiptUrls((prev) => {
-      const url = prev[index];
-      if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
-      return prev.filter((_, i) => i !== index);
-    });
-    setReceiptFiles((prev) => prev.filter((_, i) => i !== index));
-    setReceiptMetas((prev) => prev.filter((_, i) => i !== index));
-  }
-  
   function createLink() {
     (async () => {
-      const MAX_FILE_SIZE = 200 * 1024;
-      const oversized = receiptFiles.filter((f) => f.size > MAX_FILE_SIZE);
-      if (oversized.length > 0) {
-        const list = oversized.map((f) => `${f.name} (${Math.round(f.size / 1024)}KB)`).join(", ");
-        const proceed = confirm(
-          `선택한 이미지 중 ${oversized.length}개가 ${Math.round(MAX_FILE_SIZE / 1024)}KB보다 큽니다: ${list}.
-` +
-            `큰 이미지는 링크에 포함되지 않거나 링크가 매우 길어질 수 있습니다. 계속 생성하시겠습니까?`
-        );
-        if (!proceed) return; // user cancelled
+      const totalNum = Number(total) || 0;
+      const n = participants.length;
+      let computedParticipants: Array<{ id: string; name: string; share?: number }> = participants.map((p: Participant) => ({ id: p.id, name: p.name }));
+      if (n > 0) {
+        const base = Math.floor(totalNum / n);
+        let rem = totalNum - base * n;
+        computedParticipants = participants.map((p: Participant) => {
+          const extra = rem > 0 ? 1 : 0;
+          if (rem > 0) rem -= 1;
+          return { id: p.id, name: p.name, share: base + extra };
+        });
       }
 
-      const validFiles = receiptFiles;
-      let receipts: string[] = [];
-      try {
-        const TARGET_W = 600;
-        const TARGET_H = 600;
-        const TARGET_Q = 0.5;
-        const compressedDataUrls = await Promise.all(
-          validFiles.map(async (f) => {
-            try {
-              const blob = await compressImageFile(f, TARGET_W, TARGET_H, TARGET_Q);
-              return await fileToDataUrl(new File([blob], f.name, { type: 'image/jpeg' }));
-            } catch (e) {
-              console.warn('compress failed for', f.name, e);
-              return await fileToDataUrl(f);
-            }
-          })
-        );
-        receipts = compressedDataUrls;
-      } catch (e) {
-        console.warn("Failed to convert some receipt files to data URLs", e);
-      }
-
-      const payload: any = {
+      const payloadBase: any = {
         title: title || "제목",
-        total: Number(total) || 0,
+        total: totalNum,
         period: { from: periodFrom || null, to: periodTo || null },
         currency: "KRW",
-        participants: participants.map(({ id, name, share }) => ({ id, name, share }))
+        participants: computedParticipants,
+        detailItems: detailItems.map((d: DetailItem) => ({ id: d.id, title: d.title, amount: d.amount === '' ? 0 : Number(d.amount) }))
       };
 
-      if (account) {
-        payload.account = account;
-      }
+      if (accountBank || accountNumber) payloadBase.account = { bank: accountBank || null, number: accountNumber || null };
 
-      if (createViewerOnly) {
-        payload.meta = { ...(payload.meta ?? {}), viewerOnly: true };
-      }
-
-      if (receipts.length > 0) payload.receipts = receipts;
-      if (oversized.length > 0) alert(`${oversized.length}개의 큰 이미지는 링크에 포함되지 않았습니다.`);
-
-      const encoded = encodePayload(payload);
-      const WARN_LEN = 3000;
-      const BLOCK_LEN = 8000;
+      const encoded = encodePayload(payloadBase);
+      const WARN_LEN = 3000; const BLOCK_LEN = 8000;
 
       if (encoded.length > WARN_LEN) {
         try {
-          const res = await fetch('/api/payload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
+          const serverPayload = { ...payloadBase }; delete serverPayload.detailItems;
+          const res = await fetch('/api/payload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(serverPayload) });
           if (res.ok) {
-            const json = await res.json();
-            const id = json.id;
-            const url = `${location.protocol}//${location.host}${location.pathname}?id=${encodeURIComponent(id)}${createViewerOnly ? '&view=1' : ''}`;
+            const json = await res.json(); const id = json.id;
+            const url = `${location.protocol}//${location.host}${location.pathname}?id=${encodeURIComponent(id)}`;
             setLink(url);
-            setTimeout(() => {
-              try {
-                linkInputRef.current?.focus();
-                linkInputRef.current?.select();
-              } catch (e) {}
-            }, 50);
-            try {
-              router.replace(`${location.pathname}?id=${encodeURIComponent(id)}${createViewerOnly ? '&view=1' : ''}`);
-            } catch (e) {}
+            setTimeout(() => { try { linkInputRef.current?.focus(); linkInputRef.current?.select(); } catch (e) {} }, 50);
+            try { router.replace(`${location.pathname}?id=${encodeURIComponent(id)}`); } catch (e) {}
             return;
           }
-        } catch (e) {
-          console.warn('server store failed, falling back to data-url', e);
-        }
+        } catch (e) { console.warn('server store failed, falling back to data-url', e); }
       }
 
-      const url = `${location.protocol}//${location.host}${location.pathname}?p=${encoded}${createViewerOnly ? '&view=1' : ''}`;
+      const url = `${location.protocol}//${location.host}${location.pathname}?p=${encoded}`;
       setLink(url);
-      setTimeout(() => {
-        try {
-          linkInputRef.current?.focus();
-          linkInputRef.current?.select();
-        } catch (e) {}
-      }, 50);
+      setTimeout(() => { try { linkInputRef.current?.focus(); linkInputRef.current?.select(); } catch (e) {} }, 50);
       if (encoded.length > BLOCK_LEN) {
-        const proceed = confirm(
-          `생성된 링크가 매우 깁니다(${encoded.length} chars). 이 링크는 일부 환경에서 열리지 않을 수 있습니다. 계속해서 링크를 생성하시겠습니까?`
-        );
-        if (!proceed) return;
-        alert('링크가 매우 깁니다. 복사해서 새 탭에서 여시길 권장합니다.');
-        return;
+        const proceed = confirm(`생성된 링크가 매우 깁니다(${encoded.length} chars). 이 링크는 일부 환경에서 열리지 않을 수 있습니다. 계속해서 링크를 생성하시겠습니까?`);
+        if (!proceed) return; alert('링크가 매우 깁니다. 복사해서 새 탭에서 여시길 권장합니다.'); return;
       }
-      if (encoded.length > WARN_LEN) {
-        alert('생성된 링크가 큽니다. 다른 브라우저나 환경에서 열 때 잘리지 않는지 확인하세요.');
-      }
-      try {
-        router.replace(`${location.pathname}?p=${encoded}${createViewerOnly ? '&view=1' : ''}`);
-      } catch (e) {
-        console.warn('router.replace failed', e);
-      }
+      if (encoded.length > WARN_LEN) alert('생성된 링크가 큽니다. 다른 브라우저나 환경에서 열 때 잘리지 않는지 확인하세요.' );
+      try { router.replace(`${location.pathname}?p=${encoded}`); } catch (e) { console.warn('router.replace failed', e); }
     })();
   }
 
   async function copyLink() {
     if (!link) return;
-    await navigator.clipboard.writeText(link);
-    alert("링크가 복사되었습니다.");
-  }
-
-  function formatBytes(bytes: number | null): string {
-    if (bytes === null || bytes === undefined) return "-";
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    let viewerLink = link;
+    try { const url = new URL(link); if (!url.searchParams.get('view')) url.searchParams.set('view', '1'); viewerLink = url.toString(); } catch (e) { viewerLink = link.includes('?') ? `${link}&view=1` : `${link}?view=1`; }
+    try { await navigator.clipboard.writeText(viewerLink); showToast('뷰어 모드 링크가 복사되었습니다.'); } catch (e) { console.warn('clipboard write failed', e); alert('링크 복사에 실패했습니다.'); }
   }
 
   function formatDateWithWeekday(dateStr: string): string {
-    if (!dateStr) return "";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      const weekday = new Intl.DateTimeFormat("ko-KR", { weekday: "short" }).format(d);
-      return `${dateStr} (${weekday})`;
-    } catch (e) {
-      return dateStr;
-    }
+    if (!dateStr) return ""; try { const d = new Date(dateStr); if (isNaN(d.getTime())) return dateStr; const weekday = new Intl.DateTimeFormat("ko-KR", { weekday: "short" }).format(d); return `${dateStr} (${weekday})`; } catch (e) { return dateStr; }
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-8">
-      <div className="mx-auto w-full max-w-[1440px] bg-white p-6 rounded-lg shadow-sm px-4">
-        <h1 className="text-2xl font-semibold mb-2">Dutch-Pay</h1>
-        <p className="text-sm text-slate-600 mb-4">폼에 입력한 더치페이 데이터를 URL에 인코딩하여 공유합니다.</p>
+    <div className="min-h-screen bg-slate-400 p-4 sm:p-8">
+        <div className="mx-auto w-full max-w-[1440px] bg-white p-4 sm:p-6 rounded-lg shadow-sm px-3 sm:px-4 min-w-[280px]">
 
-        {!showForm && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-700">읽기 전용 뷰어 모드입니다. 폼은 숨겨져 있습니다.</div>
-              <div>
-                <button className="text-sm text-blue-600 underline" onClick={() => setShowForm(true)}>편집 모드로 전환</button>
-              </div>
+            <div className="mb-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">더치페이</h1>
+                    <div className="text-sm text-slate-600">URL로 공유 가능한 더치페이</div>
+                </div>
             </div>
-          </div>
-        )}
 
-        <div className="md:flex md:items-start md:gap-6 space-y-10 md:space-y-0">
-          <div className="md:w-2/3 md:mr-6 min-w-0">
-            <Card>
-                <CardHeader>
-                <CardTitle>{title || "더치페이"}</CardTitle>
-                <CardDescription>{now}</CardDescription>
-                {account && (
-                  <div className="mt-1 text-sm text-slate-600">계좌: {account}</div>
+            <div className="md:flex md:items-start md:gap-4 space-y-10 md:space-y-0 items-start">
+                <div className={showForm ? "md:w-1/2 md:mr-4 min-w-0" : "md:w-full min-w-0"}>
+                    <Card>
+                        <CardHeader>
+                        <CardTitle className="mb-2 border-b border-dashed border-slate-200 pb-2">{title || "더치페이"}</CardTitle>
+                        {(periodFrom || periodTo) && (
+                            <div className="mt-1 text-sm text-slate-600 border-b border-dashed border-slate-200 pb-4">기간: {formatDateWithWeekday(periodFrom)}{periodFrom && periodTo ? ' – ' : ''}{formatDateWithWeekday(periodTo)}</div>
+                        )}
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-4 items-start">
+                                <div className="flex-1">
+                                    <div className="flex justify-between text-sm text-slate-600 border-b border-dashed border-slate-200 pb-4">
+                                        <span>총액: </span>
+                                        <span>
+                                            <span className="text-2xl font-bold text-slate-800">{Number(total || 0).toLocaleString()}</span>
+                                            <span>원</span>
+                                        </span>
+                                    </div>
+
+                                    {detailItems.length > 0 && (
+                                    <div className="mt-3 border-b border-dashed border-slate-200 pb-4">
+                                        <div className="text-xs text-slate-500 mb-1">세부 항목</div>
+                                            <div className="space-y-1">
+                                                {detailItems.map((di: DetailItem) => (
+                                                <div key={di.id} className="flex items-center justify-between text-sm">
+                                                    <div className="truncate text-slate-700 mr-2">{di.title || '항목'}</div>
+                                                    <div className="text-slate-600">{(typeof di.amount === 'number' ? di.amount : (di.amount === '' ? 0 : Number(di.amount))).toLocaleString()}원</div>
+                                                </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-3 space-y-1 border-b border-dashed border-slate-200 pb-4">
+                                        {participants.map((p: Participant) => (
+                                            <div key={p.id} className="flex justify-between text-sm">
+                                                <div className="font-medium">{p.name || "참여자"}</div>
+                                                <div className="text-slate-600">{typeof p.share === "number" ? `${p.share.toLocaleString()}원` : "-"}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {(accountBank || accountNumber) && (
+                                        <div className="mt-3 flex justify-between items-center border-b border-dashed border-slate-200 pb-4">
+                                            <div className="mt-1 text-sm text-slate-600">
+                                                <div className="mb-1">은행: {accountBank ? accountBank + ' ' : ''} </div>
+                                                <div>계좌 번호: {accountNumber}</div>
+                                            </div>
+                                            <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-300" onClick={copyAccount}>계좌 복사</Button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                 </div>
+                {showForm && (
+                    <div className="md:w-1/2 min-w-0 md:mt-0 sm:mt-2">
+                        <Card>
+                            <CardContent>
+                                <div className="space-y-4 space-x-2">
+                                    <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
+                                        <Label className="block mb-2 font-semibold">제목</Label>
+                                        <Input value={title} placeholder="제목을 입력하세요" onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} />
+                                    </div>
+
+                                    <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
+                                        <Label className="block mb-2 font-semibold">기간</Label>
+                                        <div className="flex flex-col sm:flex-row gap-2 items-end">
+                                            <div className="flex-1"><DatePicker id="period-from" value={periodFrom} onChange={(s) => setPeriodFrom(s)} /></div>
+                                            <div className="flex-1"><DatePicker id="period-to" value={periodTo} onChange={(s) => setPeriodTo(s)} /></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
+                                        <Label className="block mb-2 font-semibold">계좌 정보</Label>
+                                        <div className="flex items-start gap-2">
+                                            <div className="flex gap-2 flex-1">
+                                                <Select value={accountBank} onValueChange={(v: string) => setAccountBank(v === "none" ? "" : v)}>
+                                                    <SelectTrigger className="min-w-[120px]"><SelectValue placeholder="은행 선택" /></SelectTrigger>
+                                                    <SelectContent>
+                                                    <SelectItem value="none">은행 선택</SelectItem>
+                                                    <SelectItem value="국민은행">국민은행</SelectItem>
+                                                    <SelectItem value="신한은행">신한은행</SelectItem>
+                                                    <SelectItem value="우리은행">우리은행</SelectItem>
+                                                    <SelectItem value="하나은행">하나은행</SelectItem>
+                                                    <SelectItem value="기업은행">기업은행</SelectItem>
+                                                    <SelectItem value="농협">농협</SelectItem>
+                                                    <SelectItem value="카카오뱅크">카카오뱅크</SelectItem>
+                                                    <SelectItem value="케이뱅크">케이뱅크</SelectItem>
+                                                    <SelectItem value="토스뱅크">토스뱅크</SelectItem>
+                                                    <SelectItem value="기타">기타</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input placeholder="계좌번호 - 숫자만 입력" inputMode="numeric" value={accountNumber} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const digits = e.target.value.replace(/\D/g, ''); setAccountNumber(digits); validateAccountNumber(digits); }} />
+                                            </div>
+                                        </div>
+
+                                        {accountError && <div className="mt-1 text-xs text-red-600">{accountError}</div>}
+                                    </div>
+
+                                    <div className="pb-4 border-b border-dashed border-slate-200 last:border-0 mr-0">
+                                        <Label className="block mb-2 font-semibold">총액 (숫자)</Label>
+                                        <div className="mt-2 flex items-center gap-3">
+                                            <Input className="flex-1" type="number" placeholder="총액 입력하거나 세부 항목 입력" value={total as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                            const digits = e.target.value.replace(/\D/g, '');
+                                            if (detailItems.length > 0) {
+                                                const proceed = confirm('세부 항목이 초기화됩니다. 계속하시겠습니까?');
+                                                if (!proceed) return; setDetailItems([]); setDetailOpen(false); showToast('세부 항목이 초기화되었습니다. 총액으로 대체됩니다.');
+                                            }
+                                            setTotal(digits === '' ? '' : Number(digits));
+                                            }} />
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <button type="button" className="text-sm text-slate-700 flex items-center gap-2" onClick={() => toggleDetails()}>
+                                            <span className="text-lg">{detailOpen ? '▴' : '▾'}</span>
+                                            <span>세부 항목</span>
+                                            </button>
+                                            <div><Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={addDetailItem}>항목 추가</Button></div>
+                                        </div>
+
+                                        {detailOpen && (
+                                            <div className="mt-3 space-y-2">
+                                            {detailItems.length === 0 && (<div className="text-sm text-slate-500">아직 항목이 없습니다. '항목 추가'를 눌러 항목을 추가하세요.</div>)}
+                                            {detailItems.map((it: DetailItem) => (
+                                                <div key={it.id} className="flex items-center gap-2">
+                                                <Input className="w-full sm:w-80" placeholder="제목" value={it.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateDetailItem(it.id, 'title', e.target.value)} />
+                                                <Input className="w-full sm:w-40" placeholder="금액" inputMode="numeric" value={it.amount as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateDetailItem(it.id, 'amount', e.target.value)} />
+                                                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => removeDetailItem(it.id)}>삭제</Button>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        )}
+
+                                        <div className="pb-4 border-b border-dashed border-slate-200 last:border-0 mr-0">
+                                            <div className="flex justify-between items-center">
+                                            <Label className="block font-semibold">참여자</Label>
+                                            <div><Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={addParticipant}>참여자 추가</Button></div>
+                                            </div>
+                                            <div className="space-y-2 mt-2">
+                                            {participants.map((pt: Participant) => (
+                                                <div key={pt.id} className="flex items-center gap-2">
+                                                <Input className="flex-1" value={pt.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateParticipantName(pt.id, e.target.value)} placeholder="이름" />
+                                                <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => removeParticipant(pt.id)}>삭제</Button>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-end pb-4 border-b border-dashed border-slate-200 last:border-0 items-center gap-3">
+                                            <Button onClick={createLink} className="bg-blue-700 text-white hover:bg-blue-600">링크 생성</Button>
+                                        </div>
+
+                                        {link && (
+                                            <div className="mt-4">
+                                            <Label className="font-semibold">생성된 링크</Label>
+                                            <div className="mt-2 flex gap-2">
+                                                <Input ref={linkInputRef} className="flex-1" value={link} readOnly />
+                                                <Button onClick={copyLink}>복사</Button>
+                                            </div>
+                                            </div>
+                                        )}
+                                        </div>
+                                    </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4 items-start">
-                  {receiptUrls.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      {receiptUrls.map((u, i) => (
-                        <div key={u} className="relative">
-                          <img src={u} alt={`receipt-${i}`} className="w-28 h-28 object-contain rounded-md border cursor-pointer" onClick={() => { setViewerUrl(u); setViewerOpen(true); }} />
-                          <div className="mt-1 text-xs text-slate-500">
-                            {receiptMetas[i] ? `${formatBytes(receiptMetas[i].origSize)} → ${formatBytes(receiptMetas[i].compSize)}` : "-"}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="text-sm text-slate-600">총액: {Number(total || 0).toLocaleString()}원</div>
-                    <div className="mt-3 space-y-1">
-                      {participants.map((p) => (
-                        <div key={p.id} className="flex justify-between text-sm">
-                          <div className="font-medium">{p.name || "참여자"}</div>
-                          <div className="text-slate-600">{typeof p.share === "number" ? `${p.share.toLocaleString()}원` : "-"}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            
 
-          {showForm && (
-            <div className="md:w-1/3 min-w-0 sm:mt-2">
-            <div className="space-y-4 space-x-2">
-              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label className="block mb-1">제목</Label>
-                  <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} />
-                <div className="mt-3">
-                  <Label className="block mb-1">기간</Label>
-                  <div className="flex flex-col sm:flex-row gap-2 items-end">
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="w-full cursor-pointer"
-                        role="button"
-                        aria-label="기간 시작일 선택"
-                        onClick={() => {
-                          try {
-                            if (periodFromRef.current) {
-                              (periodFromRef.current as any).showPicker ? (periodFromRef.current as any).showPicker() : periodFromRef.current.focus();
-                            }
-                          } catch (e) {}
-                        }}
-                      >
-                        <Input
-                          ref={periodFromRef}
-                          type="date"
-                          value={periodFrom}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriodFrom(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="w-full cursor-pointer"
-                        role="button"
-                        aria-label="기간 종료일 선택"
-                        onClick={() => {
-                          try {
-                            if (periodToRef.current) {
-                              (periodToRef.current as any).showPicker ? (periodToRef.current as any).showPicker() : periodToRef.current.focus();
-                            }
-                          } catch (e) {}
-                        }}
-                      >
-                        <Input
-                          ref={periodToRef}
-                          type="date"
-                          value={periodTo}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriodTo(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <div aria-live="polite" className="fixed top-6 right-6 flex flex-col gap-2 z-50">
+                    <style>{`@keyframes toast-in { from { opacity: 0; transform: translateY(-8px) scale(0.995); } to { opacity: 1; transform: translateY(0) scale(1); } } @keyframes toast-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-8px) scale(0.995); } }`}</style>
+                    {toasts.map((t: { id: number; msg: string; duration: number }) => (
+                        <div key={t.id} style={{ animation: `toast-in 200ms ease, toast-out 200ms ease ${t.duration}ms forwards` }} className="min-w-40 max-w-sm bg-emerald-600 text-white text-sm px-3 py-2 rounded shadow-md drop-shadow">{t.msg}</div>
+                    ))}
                 </div>
-              </div>
-              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label className="block mb-1">계좌 정보</Label>
-                <Input placeholder="은행 / 계좌번호 / 예금주" value={account} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAccount(e.target.value)} />
-                <div className="mt-1 text-xs text-slate-500">선택 입력 — 링크에 포함됩니다.</div>
-              </div>
-
-              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label className="font-semibold">총액 (숫자)</Label>
-                <div className="mt-2 flex items-center gap-3">
-                  <Input className="flex-1" type="number" value={total as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTotal(e.target.value === "" ? "" : Number(e.target.value))} />
-                </div>
-                <div className="flex gap-2 mt-2 flex-wrap">
-                    <Button size="sm" onClick={() => addToTotal(10)}>10원</Button>
-                    <Button size="sm" onClick={() => addToTotal(50)}>50원</Button>
-                    <Button size="sm" onClick={() => addToTotal(100)}>100원</Button>
-                    <Button size="sm" onClick={() => addToTotal(500)}>500원</Button>
-                    <Button size="sm" onClick={() => addToTotal(1000)}>천원</Button>
-                    <Button size="sm" onClick={() => addToTotal(5000)}>5천원</Button>
-                    <Button size="sm" onClick={() => addToTotal(10000)}>만원</Button>
-                    <Button size="sm" onClick={() => addToTotal(50000)}>5만원</Button>
-                    <Button size="sm" onClick={() => addToTotal(100000)}>10만원</Button>
-                    <Button size="sm" variant="danger" onClick={resetTotal}>초기화</Button>
-                  </div>
-              </div>
-
-              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <div className="flex justify-between">
-                  <Label className="font-semibold">참여자</Label>
-                  <div className="mt-2">
-                    <Button onClick={addParticipant}>참여자 추가</Button>
-                  </div>
-                </div>
-                <div className="space-y-2 mt-2">
-                  {participants.map((pt) => (
-                    <div key={pt.id} className="flex items-center gap-2">
-                      <Input className="flex-1" value={pt.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateParticipantName(pt.id, e.target.value)} placeholder="이름" />
-                      <div className="w-28 text-sm text-slate-600">
-                        {typeof pt.share === "number" ? `${pt.share.toLocaleString()}원` : "-"}
-                      </div>
-                      <Button variant="ghost" onClick={() => removeParticipant(pt.id)}>삭제</Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
-                <Label className="font-semibold">영수증 이미지</Label>
-                <div className="mt-2">
-                  <input ref={receiptInputRef} type="file" accept="image/*" multiple onChange={onReceiptChange} className="hidden" />
-                  <div className="inline-flex items-center gap-3">
-                    <Button size="sm" onClick={() => receiptInputRef.current?.click()}>영수증 업로드</Button>
-                    {receiptFiles.length > 0 && (
-                      <div className="text-sm text-slate-600">{receiptFiles.length}개 선택</div>
-                    )}
-                  </div>
-
-                  {receiptUrls.length > 0 && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {receiptUrls.map((u, i) => (
-                        <div key={u} className="relative">
-                          <img src={u} alt={`receipt-${i}`} className="w-full h-24 object-cover rounded-md border cursor-pointer" onClick={() => { setViewerUrl(u); setViewerOpen(true); }} />
-                          <button
-                            type="button"
-                            aria-label="삭제"
-                            onClick={() => removeReceiptAt(i)}
-                            className="absolute top-1 right-1 bg-white/80 rounded-full p-1 text-xs"
-                          >
-                            삭제
-                          </button>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {receiptMetas[i] ? `${formatBytes(receiptMetas[i].origSize)} → ${formatBytes(receiptMetas[i].compSize)}` : "-"}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex pb-4 border-b border-dashed border-slate-200 last:border-0 items-center gap-3">
-                <Button onClick={createLink}>링크 생성</Button>
-                <label className="flex items-center text-sm gap-2 ml-2">
-                  <input type="checkbox" checked={createViewerOnly} onChange={(e) => setCreateViewerOnly(e.target.checked)} />
-                  <span>뷰어 전용</span>
-                </label>
-                <div className="ml-3">
-                  <Button variant="ghost" onClick={resetAll}>전체 초기화</Button>
-                </div>
-              </div>
-
-              {link && (
-                <div className="mt-4">
-                  <Label className="font-semibold">생성된 링크</Label>
-                  <div className="mt-2 flex gap-2">
-                    <Input ref={linkInputRef} className="flex-1" value={link} readOnly />
-                    <Button onClick={copyLink}>복사</Button>
-                  </div>
-                </div>
-              )}
+                
             </div>
-            </div>
-          )}
         </div>
-                    {viewerUrl && (
-                    <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
-                      <DialogContent className="max-w-3xl">
-                          <DialogTitle className="sr-only">영수증 미리보기</DialogTitle>
-                          <div className="w-full">
-                            <img src={viewerUrl} alt="receipt-viewer" className="w-full h-auto object-contain" />
-                          </div>
-                          <DialogClose />
-                        </DialogContent>
-                    </Dialog>
-                  )}
-                    <div aria-live="polite" className="fixed top-6 right-6 flex flex-col gap-2 z-50">
-                      <style>{`
-                        @keyframes toast-in { from { opacity: 0; transform: translateY(-8px) scale(0.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                        @keyframes toast-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-8px) scale(0.995); } }
-                      `}</style>
-                      {toasts.map((t) => (
-                        <div
-                          key={t.id}
-                          style={{ animation: `toast-in 200ms ease, toast-out 200ms ease ${t.duration}ms forwards` }}
-                          className="min-w-40 max-w-sm bg-emerald-600 text-white text-sm px-3 py-2 rounded shadow-md drop-shadow"
-                        >
-                          {t.msg}
-                        </div>
-                      ))}
-                    </div>
-      </div>
     </div>
   );
 }
