@@ -27,6 +27,8 @@ export default function HomeClient() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [now, setNow] = useState<string>("");
+  const [showForm, setShowForm] = useState<boolean>(true);
+  const [createViewerOnly, setCreateViewerOnly] = useState<boolean>(false);
   const [toasts, setToasts] = useState<Array<{ id: number; msg: string; duration: number }>>([]);
   const toastId = useRef(0);
   const MAX_IMAGES = 3;
@@ -40,6 +42,10 @@ export default function HomeClient() {
   useEffect(() => {
     async function restoreFromParams() {
       const p = searchParams.get("p");
+      const viewParam = searchParams.get("view");
+      if (viewParam === "1") {
+        setShowForm(false);
+      }
       if (p) {
         const data = decodePayload(p);
         if (data) {
@@ -68,6 +74,8 @@ export default function HomeClient() {
             setReceiptMetas(metas);
             setReceiptFiles([]);
           }
+          if (data.meta?.viewerOnly) setShowForm(false);
+            if (data.meta?.viewerOnly) setShowForm(false);
         }
       }
 
@@ -328,6 +336,10 @@ export default function HomeClient() {
         participants: participants.map(({ id, name, share }) => ({ id, name, share }))
       };
 
+      if (createViewerOnly) {
+        payload.meta = { ...(payload.meta ?? {}), viewerOnly: true };
+      }
+
       if (receipts.length > 0) payload.receipts = receipts;
       if (oversized.length > 0) alert(`${oversized.length}개의 큰 이미지는 링크에 포함되지 않았습니다.`);
 
@@ -345,7 +357,7 @@ export default function HomeClient() {
           if (res.ok) {
             const json = await res.json();
             const id = json.id;
-            const url = `${location.protocol}//${location.host}${location.pathname}?id=${encodeURIComponent(id)}`;
+            const url = `${location.protocol}//${location.host}${location.pathname}?id=${encodeURIComponent(id)}${createViewerOnly ? '&view=1' : ''}`;
             setLink(url);
             setTimeout(() => {
               try {
@@ -354,7 +366,7 @@ export default function HomeClient() {
               } catch (e) {}
             }, 50);
             try {
-              router.replace(`${location.pathname}?id=${encodeURIComponent(id)}`);
+              router.replace(`${location.pathname}?id=${encodeURIComponent(id)}${createViewerOnly ? '&view=1' : ''}`);
             } catch (e) {}
             return;
           }
@@ -363,7 +375,7 @@ export default function HomeClient() {
         }
       }
 
-      const url = `${location.protocol}//${location.host}${location.pathname}?p=${encoded}`;
+      const url = `${location.protocol}//${location.host}${location.pathname}?p=${encoded}${createViewerOnly ? '&view=1' : ''}`;
       setLink(url);
       setTimeout(() => {
         try {
@@ -383,7 +395,7 @@ export default function HomeClient() {
         alert('생성된 링크가 큽니다. 다른 브라우저나 환경에서 열 때 잘리지 않는지 확인하세요.');
       }
       try {
-        router.replace(`${location.pathname}?p=${encoded}`);
+        router.replace(`${location.pathname}?p=${encoded}${createViewerOnly ? '&view=1' : ''}`);
       } catch (e) {
         console.warn('router.replace failed', e);
       }
@@ -423,6 +435,17 @@ export default function HomeClient() {
         <h1 className="text-2xl font-semibold mb-2">Dutch-Pay</h1>
         <p className="text-sm text-slate-600 mb-4">폼에 입력한 더치페이 데이터를 URL에 인코딩하여 공유합니다.</p>
 
+        {!showForm && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-slate-700">읽기 전용 뷰어 모드입니다. 폼은 숨겨져 있습니다.</div>
+              <div>
+                <button className="text-sm text-blue-600 underline" onClick={() => setShowForm(true)}>편집 모드로 전환</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="md:flex md:items-start md:gap-6 space-y-10 md:space-y-0">
           <div className="md:w-2/3 md:mr-6 min-w-0">
             <Card>
@@ -460,7 +483,8 @@ export default function HomeClient() {
             </Card>
           </div>
 
-          <div className="md:w-1/3 min-w-0 sm:mt-2">
+          {showForm && (
+            <div className="md:w-1/3 min-w-0 sm:mt-2">
             <div className="space-y-4 space-x-2">
               <div className="pb-4 border-b border-dashed border-slate-200 last:border-0">
                 <Label className="block mb-1">제목</Label>
@@ -589,8 +613,12 @@ export default function HomeClient() {
                 </div>
               </div>
 
-              <div className="flex pb-4 border-b border-dashed border-slate-200 last:border-0">
+              <div className="flex pb-4 border-b border-dashed border-slate-200 last:border-0 items-center gap-3">
                 <Button onClick={createLink}>링크 생성</Button>
+                <label className="flex items-center text-sm gap-2 ml-2">
+                  <input type="checkbox" checked={createViewerOnly} onChange={(e) => setCreateViewerOnly(e.target.checked)} />
+                  <span>뷰어 전용</span>
+                </label>
                 <div className="ml-3">
                   <Button variant="ghost" onClick={resetAll}>전체 초기화</Button>
                 </div>
@@ -606,7 +634,8 @@ export default function HomeClient() {
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          )}
         </div>
                     {viewerUrl && (
                     <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
