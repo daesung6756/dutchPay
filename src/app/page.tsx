@@ -1,9 +1,8 @@
 "use client";
-import nextDynamic from "next/dynamic";
+"use client";
 
-export const dynamic = "force-dynamic";
-
-const HomeClient = nextDynamic(() => import("@/components/HomeClient"), { ssr: false });
+import React from "react";
+import HomeClient from "@/components/HomeClient";
 
 export default function Page() {
   return <HomeClient />;
