@@ -159,21 +159,25 @@ export default function Header({
   const showSkeleton = !onSavePDF && !onSaveTemp && !onClearAll && !ready;
 
   return (
-    <div className={`${className} p-4`}>
-      <div className="flex justify-between w-full items-end">
-        <div>
+    <div className={`${className} p-4 w-full`}>
+      {/* Make header flexible and wrap for very small screens (down to ~280px) */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between w-full items-start gap-2 sm:gap-0">
+        <div className="min-w-0">
           {showSkeleton ? (
             <div className="space-y-2">
               <Skeleton className="h-6 w-48" />
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-semibold">{title}</h1>
+              <h1 className="text-2xl font-semibold truncate">{title}</h1>
             </>
           )}
         </div>
-        <div className="flex gap-2">
-          {right ? right : showSkeleton ? (
+
+        <div className="flex gap-2 flex-wrap items-center justify-end">
+          {right ? (
+            right
+          ) : showSkeleton ? (
             <>
               <Skeleton className="h-8 w-20" />
               <Skeleton className="h-8 w-20" />
