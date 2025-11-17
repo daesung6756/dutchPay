@@ -6,7 +6,7 @@ import { SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/compone
 import DatePicker from "@/components/DatePicker";
 import useDutchPayStore from "@/store/useDutchPayStore";
 import { encodePayload } from "@/lib/encoding";
-import { Twitter, Facebook, Share2, Copy } from 'lucide-react';
+import { Twitter, Facebook, Copy } from 'lucide-react';
 
 export default function ReceiptForm() {
   const title = useDutchPayStore((s) => s.title);
@@ -202,62 +202,36 @@ export default function ReceiptForm() {
     try { window.open(`https://story.kakao.com/share?url=${encodeURIComponent(target)}`, '_blank'); } catch (e) { /* ignore */ }
   }
 
-  // 쉐어 버튼 컴퍼넌트: 공유 버튼만 보여주고 텍스트 유지, 소셜 버튼 디자인으로 스타일링
-  function ShareButtonComponent({ linkProp, titleProp, onToast }: { linkProp: string; titleProp?: string; onToast: (m: string, d?: number) => void }) {
-    const doCopy = async () => {
-      if (!linkProp) { alert('링크가 생성되어야 복사할 수 있습니다.'); return; }
-      try {
-        let viewerLink = linkProp;
-        try {
-          const url = new URL(linkProp);
-          if (!url.searchParams.get('view')) url.searchParams.set('view', '1');
-          viewerLink = url.toString();
-        } catch (e) {
-          viewerLink = linkProp.includes('?') ? `${linkProp}&view=1` : `${linkProp}?view=1`;
-        }
-        await navigator.clipboard.writeText(viewerLink);
-        onToast('링크가 복사되었습니다.');
-      } catch (e) {
-        alert('복사에 실패했습니다.');
-      }
-    };
-
+  // 쉐어 아이콘 컴퍼넌트: 텍스트 '공유' 버튼 제거, 아이콘형 카카오/트위터/페이스북 + 복사 버튼 유지
+  // 모달에 표시할 소셜 아이콘 그룹 (복사 버튼 제외)
+  function SocialIcons({ linkProp, titleProp }: { linkProp: string; titleProp?: string }) {
     return (
-      <div className="mt-2 flex justify-center items-center gap-2">
-        <button
-          type="button"
-          aria-label="공유"
-          onClick={async () => {
-            if (!linkProp) {
-              alert('링크가 생성되어야 공유할 수 있습니다.');
-              return;
-            }
-            try {
-              if ((navigator as any).share) {
-                await (navigator as any).share({ title: titleProp || '더치페이', url: linkProp });
-                onToast('공유가 완료되었습니다.');
-                return;
-              }
-            } catch (e) {}
-            const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((titleProp || '더치페이') + ' — ')}&url=${encodeURIComponent(linkProp)}`;
-            window.open(tw, '_blank');
-          }}
-          className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300"
-        >
-          <Share2 className="w-4 h-4" />
-          <span>{'공유'}</span>
+      <div className="mt-2 flex justify-center items-center gap-3">
+        {/* Kakao */}
+        <button type="button" aria-label="카카오톡" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } try { handleKakaoShare(linkProp); } catch (e) { window.open(`https://story.kakao.com/share?url=${encodeURIComponent(linkProp)}`, '_blank'); } }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <path d="M12.001 2C6.477 2 2 6.134 2 11.067c0 2.828 1.42 5.39 3.786 7.183L6 22l3.285-1.726A10.35 10.35 0 0012 21.067C17.523 21.067 22 16.934 22 11.067 22 6.134 17.523 2 12.001 2z" />
+          </svg>
         </button>
 
-        <button type="button" aria-label="링크 복사" onClick={doCopy} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-3 py-2 rounded-md hover:bg-slate-300">
-          <Copy className="w-4 h-4" />
-          <span>{'링크 복사'}</span>
+        {/* Twitter */}
+        <button type="button" aria-label="트위터" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((titleProp || '더치페이') + ' — ')}&url=${encodeURIComponent(linkProp)}`; window.open(tw, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+          <Twitter className="w-5 h-5" />
+        </button>
+
+        {/* Facebook */}
+        <button type="button" aria-label="페이스북" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(linkProp)}`; window.open(fb, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+          <Facebook className="w-5 h-5" />
         </button>
       </div>
     );
   }
 
+  // (공유 모달을 제거하여 관련 ESC 핸들러 불필요)
+
   return (
     <div className=" min-w-0 md:mt-0 sm:mt-2">
+      <style>{`@media (max-width: 320px) { .hide-320 { display: none; } }`}</style>
       <Card>
         <CardContent>
           <div className="space-y-4 space-x-2">
@@ -383,7 +357,22 @@ export default function ReceiptForm() {
                               <input ref={linkInputRef} readOnly value={link || ''} className="w-full border rounded px-2 py-1 text-sm" aria-label="generated-link" />
                             </div>
 
-                            <ShareButtonComponent linkProp={link || ''} titleProp={title} onToast={showToast} />
+                            <div className="flex items-center gap-2">
+                              {/* Twitter */}
+                              <button type="button" aria-label="트위터로 공유" onClick={() => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((title || '더치페이') + ' — ')}&url=${encodeURIComponent(link)}`; window.open(tw, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+                                <Twitter className="w-5 h-5" />
+                              </button>
+
+                              {/* Facebook */}
+                              <button type="button" aria-label="페이스북으로 공유" onClick={() => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`; window.open(fb, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+                                <Facebook className="w-5 h-5" />
+                              </button>
+
+                              <button type="button" aria-label="링크 복사" onClick={copyLink} className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-200 text-slate-800 hover:bg-slate-300">
+                                <Copy className="w-4 h-4" />
+                                <span className="hide-320">{'링크 복사'}</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (

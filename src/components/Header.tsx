@@ -148,7 +148,9 @@ export default function Header({
 
   const renderButtons = () => (
     <>
-      <Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={onSavePDF ?? handleSavePDF}>{'PDF 저장'}</Button>
+      <span className="hidden sm:inline-flex">
+        <Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={onSavePDF ?? handleSavePDF}>{'PDF 저장'}</Button>
+      </span>
       <Button size="sm" className="bg-green-700 border border-slate-200 text-white hover:bg-green-600" onClick={onSaveTemp ?? handleSaveTemp}>{'임시 저장'}</Button>
       <Button size="sm" className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" onClick={onClearAll ?? handleClearAll}>{'전체 초기화'}</Button>
     </>
