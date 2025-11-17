@@ -49,7 +49,7 @@ export type DutchPayState = {
 };
 
 export const useDutchPayStore = create<DutchPayState>()(
-  persist((set, get) => ({
+  persist<DutchPayState>((set, get) => ({
     title: '',
     periodFrom: '',
     periodTo: '',
@@ -120,7 +120,12 @@ export const useDutchPayStore = create<DutchPayState>()(
   }),
   {
     name: 'dutchpay-store',
-  })
-);
+    // do not persist transient UI state like toasts
+    partialize: (state: DutchPayState) => {
+      const { toasts, ...rest } = state as any;
+      return rest;
+    },
+  }
+));
 
 export default useDutchPayStore;

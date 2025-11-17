@@ -64,40 +64,14 @@ export default function HomeClient() {
     }
   }
 
+  // legacy window-based API removed — store is used for global interactions
+
+  // Clear any persisted or stale toasts on first mount to avoid showing toasts immediately
   useEffect(() => {
-    const w = window as any;
-    if (!w.dutchpay) w.dutchpay = {};
-    w.dutchpay.getFormState = () => ({
-      title,
-      periodFrom,
-      periodTo,
-      total,
-      participants,
-      accountBank,
-      accountNumber,
-      detailItems,
-    });
-    w.dutchpay.resetForm = () => {
-      try {
-        resetAll();
-      } catch (e) {}
-    };
-    w.dutchpay.showToast = (msg: string, duration = 2000) => {
-      try {
-        showToast(msg, duration);
-      } catch (e) {}
-    };
-    return () => {
-      try {
-        if (w.dutchpay) {
-          delete w.dutchpay.getFormState;
-          delete w.dutchpay.resetForm;
-          delete w.dutchpay.showToast;
-        }
-      } catch (e) {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, periodFrom, periodTo, total, participants, accountBank, accountNumber, detailItems]);
+    try {
+      useDutchPayStore.setState({ toasts: [] });
+    } catch (e) {}
+  }, []);
 
   function validateAccountNumber(num: string): boolean {
     if (!num) return true;
@@ -317,11 +291,11 @@ export default function HomeClient() {
 
             <div className="md:flex md:items-start md:gap-4 space-y-10 md:space-y-0 items-start">
                 <div className={showForm ? "md:w-1/2 md:mr-4 min-w-0" : "md:w-full min-w-0"}>
-                    <Card>
+                      <Card id="receipt">
                         <CardHeader>
-                        <CardTitle className="mb-2 border-b border-dashed border-slate-200 pb-2">{title || "더치페이"}</CardTitle>
+                        <CardTitle className="mb-2 border-b border-dashed border-slate-200 pb-2 no-print">{title || "더치페이"}</CardTitle>
                         {(periodFrom || periodTo) && (
-                            <div className="mt-1 text-sm text-slate-600 border-b border-dashed border-slate-200 pb-4">기간: {formatDateWithWeekday(periodFrom)}{periodFrom && periodTo ? ' – ' : ''}{formatDateWithWeekday(periodTo)}</div>
+                          <div className="mt-1 text-sm text-slate-600 border-b border-dashed border-slate-200 pb-4 no-print">기간: {formatDateWithWeekday(periodFrom)}{periodFrom && periodTo ? ' – ' : ''}{formatDateWithWeekday(periodTo)}</div>
                         )}
                         </CardHeader>
                         <CardContent>

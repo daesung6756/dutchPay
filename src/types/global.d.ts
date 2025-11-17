@@ -1,13 +1,2 @@
-interface DutchPayWindow {
-  getFormState?: () => any;
-  resetForm?: () => void;
-  showToast?: (msg: string, duration?: number) => void;
-}
-
-declare global {
-  interface Window {
-    dutchpay?: DutchPayWindow;
-  }
-}
-
+// global types removed — kept placeholder to avoid accidental imports
 export {};
