@@ -34,6 +34,44 @@ export default function ReceiptForm() {
   const linkInputRef = React.useRef<HTMLInputElement | null>(null);
   const showToast = useDutchPayStore((s) => s.showToast);
 
+  // expose lightweight window API so header actions can synchronously read/reset the form
+  React.useEffect(() => {
+    try {
+      const w = window as any;
+      if (!w.dutchpay) w.dutchpay = {};
+      w.dutchpay.getFormState = () => ({
+        title,
+        periodFrom,
+        periodTo,
+        total,
+        participants,
+        accountBank,
+        accountNumber,
+        detailItems,
+      });
+      w.dutchpay.resetForm = () => {
+        try {
+          useDutchPayStore.getState().resetAll();
+        } catch (e) {}
+      };
+      w.dutchpay.showToast = (msg: string, duration = 2000) => {
+        try { showToast(msg, duration); } catch (e) {}
+      };
+      return () => {
+        try {
+          if (w.dutchpay) {
+            delete w.dutchpay.getFormState;
+            delete w.dutchpay.resetForm;
+            delete w.dutchpay.showToast;
+          }
+        } catch (e) {}
+      };
+    } catch (e) {
+      // ignore in non-browser envs
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, periodFrom, periodTo, total, participants, accountBank, accountNumber, detailItems]);
+
   // 자동 합계: 세부 항목이 있을 때 세부 항목의 금액 합계를 총액으로 반영
   React.useEffect(() => {
     try {
@@ -205,7 +243,30 @@ export default function ReceiptForm() {
               {detailItems.map((it: any) => (
                 <div key={it.id} className="flex items-center gap-2 mt-2 w-full">
                   <Input className="w-full sm:w-80 flex-1" placeholder={'제목'} value={it.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateDetailItem(it.id, 'title', e.target.value)} />
-                  <Input className="w-full sm:w-40 flex-1" placeholder={'금액'} inputMode="numeric" value={it.amount as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateDetailItem(it.id, 'amount', e.target.value)} />
+                  <Input
+                    className="w-full sm:w-40 flex-1"
+                    placeholder={'금액'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={String(it.amount ?? '')}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const raw = e.target.value || '';
+                      const digits = raw.replace(/\D/g, '');
+                      updateDetailItem(it.id, 'amount', digits === '' ? '' : digits);
+
+                      try {
+                        // compute new sum locally and set immediately to avoid race
+                        const newItems = detailItems.map((di: any) => (di.id === it.id ? { ...di, amount: digits === '' ? '' : digits } : di));
+                        const sum = newItems.reduce((acc: number, it2: any) => {
+                          const n = typeof it2.amount === 'number' ? it2.amount : (it2.amount === '' ? 0 : Number(it2.amount || 0));
+                          return acc + (Number.isNaN(n) ? 0 : n);
+                        }, 0);
+                        setTotal(sum);
+                      } catch (e) {
+                        // ignore
+                      }
+                    }}
+                  />
                   <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => removeDetailItem(it.id)}>{'삭제'}</Button>
                 </div>
               ))}

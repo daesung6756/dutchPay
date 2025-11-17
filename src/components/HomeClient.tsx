@@ -114,6 +114,51 @@ export default function HomeClient() {
                         console.warn("failed to fetch payload by id", e);
                     }
                 }
+
+                // If no URL payload (p) and no saved id, try restoring from localStorage autosave
+                try {
+                    const p = searchParams.get("p");
+                    const idParam = searchParams.get("id");
+                    if (!p && !idParam) {
+                        const raw = localStorage.getItem('dutchpay:autosave');
+                        if (raw) {
+                            try {
+                                const data = JSON.parse(raw);
+                                if (data) {
+                                    setTitle(data.title ?? "");
+                                    setPeriodFrom(data.period?.from ?? "");
+                                    setPeriodTo(data.period?.to ?? "");
+                                    const acc = data.account ?? data.meta?.account;
+                                    if (acc) {
+                                        if (typeof acc === "string") {
+                                            setAccountNumber(acc);
+                                        } else if (typeof acc === "object") {
+                                            setAccountBank(acc.bank ?? "");
+                                            setAccountNumber(acc.number ?? acc.num ?? acc.account ?? "");
+                                        }
+                                    }
+                                    setTotal((data.total ?? "") as number | "");
+                                    if (Array.isArray(data.detailItems)) {
+                                        setDetailItems(
+                                            data.detailItems.map((di: any, i: number) => {
+                                                const rawId = di.id ?? `d${i + 1}`;
+                                                const idStr = String(rawId);
+                                                const id = idStr.startsWith('d') ? idStr : `d${idStr}`;
+                                                return { id, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" };
+                                            })
+                                        );
+                                    }
+                                    const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
+                                    setParticipants(parsed);
+                                }
+                            } catch (e) {
+                                console.warn('failed parsing dutchpay:autosave', e);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('restore from localStorage failed', e);
+                }
             } finally {
                 setLoading(false);
             }
