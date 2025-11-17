@@ -159,7 +159,7 @@ export default function Header({
   const showSkeleton = !onSavePDF && !onSaveTemp && !onClearAll && !ready;
 
   return (
-    <div className={`${className} p-4 w-full`}>
+    <div className={`${className} p-4 w-full sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200`}> 
       {/* Make header flexible and wrap for very small screens (down to ~280px) */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between w-full items-start gap-2 sm:gap-0">
         <div className="min-w-0">
