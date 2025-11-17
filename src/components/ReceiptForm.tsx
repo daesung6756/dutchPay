@@ -6,6 +6,7 @@ import { SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/compone
 import DatePicker from "@/components/DatePicker";
 import useDutchPayStore from "@/store/useDutchPayStore";
 import { encodePayload } from "@/lib/encoding";
+import { Twitter, Facebook, Share2, Copy } from 'lucide-react';
 
 export default function ReceiptForm() {
   const title = useDutchPayStore((s) => s.title);
@@ -173,6 +174,88 @@ export default function ReceiptForm() {
     try { await navigator.clipboard.writeText(viewerLink); showToast('뷰어 모드 링크가 복사되었습니다.'); } catch (e) { console.warn('clipboard write failed', e); alert('링크 복사에 실패했습니다.'); }
   }
 
+  async function handleKakaoShare(target: string) {
+    try {
+      if (!target) {
+        alert('링크가 생성되어야 공유할 수 있습니다.');
+        return;
+      }
+      const w = window as any;
+      if (w.Kakao && w.Kakao.Link) {
+        try {
+          w.Kakao.Link.sendDefault({
+            objectType: 'feed',
+            content: {
+              title: title || '더치페이',
+              description: '',
+              link: { mobileWebUrl: target, webUrl: target },
+            },
+            buttons: [{ title: '열기', link: { mobileWebUrl: target, webUrl: target } }],
+          });
+          showToast('카카오톡으로 공유되었습니다.');
+          return;
+        } catch (e) {
+          // fallthrough to fallback
+        }
+      }
+    } catch (e) {}
+    try { window.open(`https://story.kakao.com/share?url=${encodeURIComponent(target)}`, '_blank'); } catch (e) { /* ignore */ }
+  }
+
+  // 쉐어 버튼 컴퍼넌트: 공유 버튼만 보여주고 텍스트 유지, 소셜 버튼 디자인으로 스타일링
+  function ShareButtonComponent({ linkProp, titleProp, onToast }: { linkProp: string; titleProp?: string; onToast: (m: string, d?: number) => void }) {
+    const doCopy = async () => {
+      if (!linkProp) { alert('링크가 생성되어야 복사할 수 있습니다.'); return; }
+      try {
+        let viewerLink = linkProp;
+        try {
+          const url = new URL(linkProp);
+          if (!url.searchParams.get('view')) url.searchParams.set('view', '1');
+          viewerLink = url.toString();
+        } catch (e) {
+          viewerLink = linkProp.includes('?') ? `${linkProp}&view=1` : `${linkProp}?view=1`;
+        }
+        await navigator.clipboard.writeText(viewerLink);
+        onToast('링크가 복사되었습니다.');
+      } catch (e) {
+        alert('복사에 실패했습니다.');
+      }
+    };
+
+    return (
+      <div className="mt-2 flex justify-center items-center gap-2">
+        <button
+          type="button"
+          aria-label="공유"
+          onClick={async () => {
+            if (!linkProp) {
+              alert('링크가 생성되어야 공유할 수 있습니다.');
+              return;
+            }
+            try {
+              if ((navigator as any).share) {
+                await (navigator as any).share({ title: titleProp || '더치페이', url: linkProp });
+                onToast('공유가 완료되었습니다.');
+                return;
+              }
+            } catch (e) {}
+            const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((titleProp || '더치페이') + ' — ')}&url=${encodeURIComponent(linkProp)}`;
+            window.open(tw, '_blank');
+          }}
+          className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-300"
+        >
+          <Share2 className="w-4 h-4" />
+          <span>{'공유'}</span>
+        </button>
+
+        <button type="button" aria-label="링크 복사" onClick={doCopy} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-3 py-2 rounded-md hover:bg-slate-300">
+          <Copy className="w-4 h-4" />
+          <span>{'링크 복사'}</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className=" min-w-0 md:mt-0 sm:mt-2">
       <Card>
@@ -294,9 +377,14 @@ export default function ReceiptForm() {
 
                     <div className="mt-4">
                       {link ? (
-                        <div className="flex gap-2 items-center">
-                          <input ref={linkInputRef} readOnly value={link || ''} className="flex-1 border rounded px-2 py-1 text-sm" aria-label="generated-link" />
-                          <Button onClick={copyLink}>{'링크 복사'}</Button>
+                        <div className="w-full text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="w-full max-w-xl">
+                              <input ref={linkInputRef} readOnly value={link || ''} className="w-full border rounded px-2 py-1 text-sm" aria-label="generated-link" />
+                            </div>
+
+                            <ShareButtonComponent linkProp={link || ''} titleProp={title} onToast={showToast} />
+                          </div>
                         </div>
                       ) : (
                         <div className="text-sm text-slate-500">링크 생성 후에 이곳에 표시됩니다.</div>

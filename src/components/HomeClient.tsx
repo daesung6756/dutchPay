@@ -187,7 +187,7 @@ export default function HomeClient() {
 
                 <div className="mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">더치페이 v1.0</h1>
+                        <h1 className="text-2xl font-bold text-slate-800">더치페이 v1.1</h1>
                         <div className="text-sm text-slate-600">URL로 공유 가능한 더치페이</div>
                     </div>
                 </div>
