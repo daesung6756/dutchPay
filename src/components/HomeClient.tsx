@@ -61,7 +61,12 @@ export default function HomeClient() {
                         setTotal((data.total ?? "") as number | "");
                         if (Array.isArray(data.detailItems)) {
                             setDetailItems(
-                                data.detailItems.map((di: any, i: number) => ({ id: di.id ?? `d${i + 1}`, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" }))
+                                data.detailItems.map((di: any, i: number) => {
+                                    const rawId = di.id ?? `d${i + 1}`;
+                                    const idStr = String(rawId);
+                                    const id = idStr.startsWith('d') ? idStr : `d${idStr}`;
+                                    return { id, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" };
+                                })
                             );
                         }
                         const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
@@ -91,7 +96,12 @@ export default function HomeClient() {
                             setTotal((data.total ?? "") as number | "");
                             if (Array.isArray(data.detailItems)) {
                                 setDetailItems(
-                                    data.detailItems.map((di: any, i: number) => ({ id: di.id ?? `d${i + 1}`, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" }))
+                                    data.detailItems.map((di: any, i: number) => {
+                                        const rawId = di.id ?? `d${i + 1}`;
+                                        const idStr = String(rawId);
+                                        const id = idStr.startsWith('d') ? idStr : `d${idStr}`;
+                                        return { id, title: di.title ?? "", amount: di.amount != null ? String(di.amount) : "" };
+                                    })
                                 );
                             } else {
                                 setDetailItems([]);

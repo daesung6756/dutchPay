@@ -34,6 +34,23 @@ export default function ReceiptForm() {
   const linkInputRef = React.useRef<HTMLInputElement | null>(null);
   const showToast = useDutchPayStore((s) => s.showToast);
 
+  // 자동 합계: 세부 항목이 있을 때 세부 항목의 금액 합계를 총액으로 반영
+  React.useEffect(() => {
+    try {
+      if (detailItems && detailItems.length > 0) {
+        const sum = detailItems.reduce((acc: number, it: any) => {
+          const n = typeof it.amount === 'number' ? it.amount : (it.amount === '' ? 0 : Number(it.amount || 0));
+          return acc + (Number.isNaN(n) ? 0 : n);
+        }, 0);
+        if (sum !== (typeof total === 'number' ? total : (total === '' ? 0 : Number(total)))) {
+          setTotal(sum);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [detailItems]);
+
 
   function validateAccountNumber(num: string): boolean {
     if (!num) return true;
@@ -218,7 +235,7 @@ export default function ReceiptForm() {
                       {link ? (
                         <div className="flex gap-2 items-center">
                           <input ref={linkInputRef} readOnly value={link || ''} className="flex-1 border rounded px-2 py-1 text-sm" aria-label="generated-link" />
-                          <Button onClick={copyLink}>{'뷰어 링크 복사'}</Button>
+                          <Button onClick={copyLink}>{'링크 복사'}</Button>
                         </div>
                       ) : (
                         <div className="text-sm text-slate-500">링크 생성 후에 이곳에 표시됩니다.</div>

@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 type Participant = { id: string; name: string; share?: number };
 type DetailItem = { id: string; title: string; amount: string };
@@ -48,8 +47,7 @@ export type DutchPayState = {
   resetAll: () => void;
 };
 
-export const useDutchPayStore = create<DutchPayState>()(
-  persist<DutchPayState>((set, get) => ({
+export const useDutchPayStore = create<DutchPayState>()((set, get) => ({
     title: '',
     periodFrom: '',
     periodTo: '',
@@ -117,15 +115,6 @@ export const useDutchPayStore = create<DutchPayState>()(
         detailOpen: false,
         toasts: [],
       }),
-  }),
-  {
-    name: 'dutchpay-store',
-    // do not persist transient UI state like toasts or generated links
-    partialize: (state: DutchPayState) => {
-      const { toasts, link, ...rest } = state as any;
-      return rest;
-    },
-  }
-));
+  }));
 
 export default useDutchPayStore;
