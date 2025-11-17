@@ -22,6 +22,13 @@ export function DatePicker({ value, onChange, id, placeholder = "날짜 선택" 
     setDate(value ? new Date(value + "T00:00:00") : undefined);
   }, [value]);
 
+  function formatLocalDate(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   return (
     <div className="flex flex-col gap-1 ">
       <Label htmlFor={id} className="sr-only">
@@ -30,7 +37,7 @@ export function DatePicker({ value, onChange, id, placeholder = "날짜 선택" 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" id={id} className="justify-between font-normal">
-            {date ? date.toISOString().slice(0, 10) : placeholder}
+            {date ? formatLocalDate(date) : placeholder}
             <ChevronDownIcon />
           </Button>
         </PopoverTrigger>
@@ -42,7 +49,7 @@ export function DatePicker({ value, onChange, id, placeholder = "날짜 선택" 
             onSelect={(d) => {
               setDate(d ?? undefined);
               setOpen(false);
-              onChange?.(d ? d.toISOString().slice(0, 10) : "");
+              onChange?.(d ? formatLocalDate(d) : "");
             }}
           />
         </PopoverContent>
