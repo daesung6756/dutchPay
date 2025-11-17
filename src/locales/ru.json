@@ -1,0 +1,26 @@
+{
+  "header.title": "Dutch-Pay",
+  "header.save_pdf": "Сохранить PDF",
+  "header.save_temp": "Временное сохранение",
+  "header.reset_all": "Сбросить всё",
+  "header.pdf_opened_toast": "PDF открыт в новой вкладке.",
+  "header.printing_toast": "Печать области квитанции.",
+  "header.saved_temp_toast": "Временно сохранено.",
+  "header.cleared_all_toast": "Всё очищено.",
+
+  "form.title": "Название",
+  "form.period": "Период",
+  "form.account_info": "Информация о счёте",
+  "form.total": "Итого",
+  "form.participants": "Участники",
+  "form.add_detail": "Добавить позицию",
+  "form.add_participant": "Добавить участника",
+  "form.create_link": "Создать ссылку",
+  "form.copy_viewer_link": "Копировать ссылку для просмотра",
+  "form.no_items": "Пока нет позиций. Нажмите 'Добавить позицию', чтобы добавить.",
+  "form.detail_reset_confirm": "Детальные позиции будут удалены. Продолжить?",
+  "form.detail_reset_toast": "Детальные позиции сброшены. Заменены на общий итог.",
+  "form.viewer_link_copied_toast": "Ссылка для просмотра скопирована.",
+
+  "receipt.empty": "Нет данных чека"
+}

@@ -1,0 +1,26 @@
+{
+  "header.title": "Dutch-Pay",
+  "header.save_pdf": "Lưu PDF",
+  "header.save_temp": "Lưu tạm",
+  "header.reset_all": "Đặt lại tất cả",
+  "header.pdf_opened_toast": "PDF đã mở trong tab mới.",
+  "header.printing_toast": "Đang in khu vực biên lai.",
+  "header.saved_temp_toast": "Đã lưu tạm thời.",
+  "header.cleared_all_toast": "Đã xóa tất cả.",
+
+  "form.title": "Tiêu đề",
+  "form.period": "Khoảng thời gian",
+  "form.account_info": "Thông tin tài khoản",
+  "form.total": "Tổng",
+  "form.participants": "Người tham gia",
+  "form.add_detail": "Thêm mục",
+  "form.add_participant": "Thêm người tham gia",
+  "form.create_link": "Tạo liên kết",
+  "form.copy_viewer_link": "Sao chép liên kết xem",
+  "form.no_items": "Chưa có mục. Nhấn 'Thêm mục' để thêm.",
+  "form.detail_reset_confirm": "Các mục chi tiết sẽ bị xóa. Tiếp tục?",
+  "form.detail_reset_toast": "Các mục chi tiết đã được đặt lại. Thay bằng tổng.",
+  "form.viewer_link_copied_toast": "Đã sao chép liên kết xem.",
+
+  "receipt.empty": "Không có dữ liệu biên lai"
+}

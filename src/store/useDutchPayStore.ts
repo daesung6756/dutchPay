@@ -120,9 +120,9 @@ export const useDutchPayStore = create<DutchPayState>()(
   }),
   {
     name: 'dutchpay-store',
-    // do not persist transient UI state like toasts
+    // do not persist transient UI state like toasts or generated links
     partialize: (state: DutchPayState) => {
-      const { toasts, ...rest } = state as any;
+      const { toasts, link, ...rest } = state as any;
       return rest;
     },
   }

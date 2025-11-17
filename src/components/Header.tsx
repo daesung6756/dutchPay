@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import Skeleton from "@/components/ui/skeleton";
 import useDutchPayStore, { DutchPayState } from "@/store/useDutchPayStore";
+import { useRouter } from 'next/navigation';
 
 type HeaderProps = {
   title?: string;
@@ -16,19 +17,20 @@ type HeaderProps = {
 };
 
 export default function Header({
-  title = "Dutch-Pay",
+  title,
   right,
   className = "",
   onSavePDF,
   onSaveTemp,
   onClearAll,
 }: HeaderProps) {
+  const router = useRouter();
+
   const renderButtons = () => {
-    const w = typeof window !== 'undefined' ? (window as any) : undefined;
     return (
       <>
         {onSavePDF ? (
-          <Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={onSavePDF}>PDF 저장</Button>
+          <Button size="sm" className="bg-slate-700 border border-slate-200 text-white hover:bg-slate-600" onClick={onSavePDF}>{'PDF 저장'}</Button>
         ) : (
           <Button
             size="sm"
@@ -39,16 +41,13 @@ export default function Header({
               const el = document.getElementById(receiptId);
               if (!el) {
                 try { window.print(); } catch (e) {}
-                try { st.showToast('인쇄/저장 대화상자를 엽니다.'); } catch (e) {}
+                try { st.showToast('영수증 영역을 인쇄합니다.'); } catch (e) {}
                 return;
               }
 
-              // Try to capture the element as a PDF using html2canvas + jsPDF to avoid browser headers/footers
               try {
-                // @ts-ignore - optional dynamic import; package may not be installed in dev yet
                 const html2canvasMod = await import('html2canvas');
                 const html2canvas = (html2canvasMod && (html2canvasMod as any).default) || html2canvasMod;
-                // @ts-ignore - optional dynamic import; package may not be installed in dev yet
                 const { jsPDF } = await import('jspdf');
 
                 const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
@@ -59,21 +58,18 @@ export default function Header({
                 const imgProps: any = (pdf as any).getImageProperties ? (pdf as any).getImageProperties(imgData) : { width: canvas.width, height: canvas.height };
                 const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                // Do NOT force download. Open PDF in a new tab so user can decide what to do.
                 try {
                   const blob = pdf.output('blob');
                   const url = URL.createObjectURL(blob);
                   window.open(url, '_blank');
                   setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
-                  try { st.showToast('새 탭에서 PDF가 열렸습니다. 저장은 브라우저에서 선택하세요.'); } catch (e) {}
+                  try { st.showToast('새 탭에서 PDF가 열렸습니다.'); } catch (e) {}
                 } catch (e) {
-                  // fallback to direct save if blob/open fails
                   try { pdf.save('receipt.pdf'); try { st.showToast('PDF 저장을 완료했습니다.'); } catch (e) {} } catch (ee) { console.warn('pdf open/save failed', ee); }
                 }
                 return;
               } catch (err) {
                 console.warn('html2canvas/jsPDF capture failed, falling back to print', err);
-                // Fallback: use print with receipt-only style (browser headers may appear)
                 try {
                   const styleId = 'dutchpay-print-style';
                   const existing = document.getElementById(styleId) as HTMLStyleElement | null;
@@ -91,12 +87,12 @@ export default function Header({
               }
             }}
           >
-            PDF 저장
+            {'PDF 저장'}
           </Button>
         )}
 
         {onSaveTemp ? (
-          <Button size="sm" className="bg-green-700 border border-slate-200 text-white hover:bg-green-600" onClick={onSaveTemp}>임시 저장</Button>
+          <Button size="sm" className="bg-green-700 border border-slate-200 text-white hover:bg-green-600" onClick={onSaveTemp}>{'임시 저장'}</Button>
         ) : (
           <Button
             size="sm"
@@ -120,12 +116,12 @@ export default function Header({
               }
             }}
           >
-            임시 저장
+            {'임시 저장'}
           </Button>
         )}
 
         {onClearAll ? (
-          <Button size="sm" className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" onClick={onClearAll}>전체 초기화</Button>
+          <Button size="sm" className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50" onClick={onClearAll}>{'전체 초기화'}</Button>
         ) : (
           <Button
             size="sm"
@@ -133,15 +129,56 @@ export default function Header({
             onClick={() => {
               try {
                 const st = useDutchPayStore.getState();
-                localStorage.removeItem('dutchpay:autosave');
+                // reset store in memory first
                 st.resetAll();
+
+                const removeMatchingKeys = () => {
+                  try {
+                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                      const key = localStorage.key(i);
+                      if (!key) continue;
+                      const lk = key.toLowerCase();
+                      if (lk.includes('dutchpay') || lk.includes('dutch')) {
+                        try { localStorage.removeItem(key); } catch (e) {}
+                      }
+                    }
+                  } catch (e) {}
+                  try {
+                    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                      const key = sessionStorage.key(i);
+                      if (!key) continue;
+                      const lk = key.toLowerCase();
+                      if (lk.includes('dutchpay') || lk.includes('dutch')) {
+                        try { sessionStorage.removeItem(key); } catch (e) {}
+                      }
+                    }
+                  } catch (e) {}
+                };
+
+                // remove now and again next tick to cover re-persistence race
+                removeMatchingKeys();
+                setTimeout(removeMatchingKeys, 50);
+
+                // also clear the URL query params that may rehydrate the state (p, id, view)
+                try {
+                  if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+                    let changed = false;
+                    ['p','id','view'].forEach(k => { if (url.searchParams.has(k)) { url.searchParams.delete(k); changed = true; } });
+                    if (changed) {
+                      // replace without adding history entry
+                      router.replace(url.pathname + url.search + url.hash);
+                    }
+                  }
+                } catch (e) {}
+
                 st.showToast('전체 초기화되었습니다.');
               } catch (e) {
                 try { window.dispatchEvent(new CustomEvent('dutchpay:clear-request')); } catch (err) {}
               }
             }}
           >
-            전체 초기화
+            {'전체 초기화'}
           </Button>
         )}
       </>
@@ -159,7 +196,7 @@ export default function Header({
   const showSkeleton = !onSavePDF && !onSaveTemp && !onClearAll && !ready;
 
   return (
-    <div className={`${className} p-4 w-full sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200`}> 
+    <div className={`${className} p-4 w-full sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-200`}> 
       {/* Make header flexible and wrap for very small screens (down to ~280px) */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between w-full items-start gap-2 sm:gap-0">
         <div className="min-w-0">
@@ -174,7 +211,7 @@ export default function Header({
           )}
         </div>
 
-        <div className="flex gap-2 flex-wrap items-center justify-end">
+        <div className="flex gap-2 flex-wrap items-center justify-end w-full">
           {right ? (
             right
           ) : showSkeleton ? (
