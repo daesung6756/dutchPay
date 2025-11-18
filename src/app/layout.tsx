@@ -11,7 +11,7 @@ const noto = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "더치페이 v1.1",
+  title: "더치페이 v1.12",
   description: "더치페이 - URL로 공유 가능한 분할 결제 생성기",
 };
 
