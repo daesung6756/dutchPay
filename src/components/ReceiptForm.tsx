@@ -222,7 +222,7 @@ export default function ReceiptForm() {
             <div className="pb-4 border-b border-dashed border-slate-200 last:border-0 mr-0">
               <Label className="block mb-2 font-semibold">총액 (숫자)</Label>
               <div className="mt-2 flex items-center gap-3">
-                <Input className="flex-1" type="number" placeholder={'총액 (숫자) 입력하거나 세부 항목 입력'} value={total as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <Input className="flex-1" type="number" placeholder={'총액 (숫자)'} value={total as any} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   const digits = e.target.value.replace(/\D/g, '');
                   if (detailItems.length > 0) {
                     const proceed = confirm('세부 항목이 초기화됩니다. 계속하시겠습니까?');
@@ -241,7 +241,7 @@ export default function ReceiptForm() {
               </div>
 
               {detailItems.length === 0 && (
-                <div className="text-sm text-slate-500">아직 항목이 없습니다. '항목 추가'를 눌러 항목을 추가하세요.</div>
+                <div className="text-sm text-slate-500">'항목 추가'를 눌러 항목을 추가하세요.<br/>세부 항목이 없을 시에는 총액 필드에 작성.<br/>두가지를 동시 사용 불가능</div>
               )}
               {detailItems.map((it: any) => (
                 <div key={it.id} className="flex items-center gap-2 mt-2 w-full">

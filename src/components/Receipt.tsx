@@ -86,7 +86,7 @@ export default function Receipt() {
                       <div key={di.id} className="flex items-center justify-between text-sm">
                           <div className="truncate text-slate-700 mr-2">{di.title || '항목'}</div>
                           <div className="text-slate-600">
-                            <span className="text-lg font-semibold text-slate-800">{(typeof di.amount === 'number' ? di.amount : (di.amount === '' ? 0 : Number(di.amount))).toLocaleString()}</span>
+                            <span className="text-lg font-normal text-slate-800">{(typeof di.amount === 'number' ? di.amount : (di.amount === '' ? 0 : Number(di.amount))).toLocaleString()}</span>
                             <span className="ml-1">원</span>
                           </div>
                         </div>
@@ -105,9 +105,9 @@ export default function Receipt() {
                       <div className="font-medium">{maskLastChar(p.name) || '참여자'}</div>
                         <div className="text-slate-600 flex items-center gap-2">
                         {ded > 0 && (
-                          <span className="text-red-600">차감금액: <span className="text-red-600 font-semibold">{ded.toLocaleString()}</span><span className="ml-1">원</span></span>
+                          <span className="text-red-600">차감금액: <span className="text-red-600 font-normal">{ded.toLocaleString()}</span><span className="ml-1">원</span></span>
                         )}
-                        <span className="text-lg font-semibold text-slate-800">{finalAmount.toLocaleString()}</span>
+                        <span className="text-lg font-normal text-slate-800">{finalAmount.toLocaleString()}</span>
                         <span className="ml-1">원</span>
                       </div>
                     </div>
