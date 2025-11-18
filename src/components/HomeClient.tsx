@@ -69,7 +69,7 @@ export default function HomeClient() {
                                 })
                             );
                         }
-                        const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
+                        const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}`, deduction: pt.deduction ?? (pt.deduce ?? '') }));
                         setParticipants(parsed);
                         if (data.meta?.viewerOnly) setShowForm(false);
                     }
@@ -106,7 +106,7 @@ export default function HomeClient() {
                             } else {
                                 setDetailItems([]);
                             }
-                            const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}` }));
+                            const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}`, deduction: pt.deduction ?? (pt.deduce ?? '') }));
                             setParticipants(parsed);
                             if (data.meta?.viewerOnly) setShowForm(false);
                         }
