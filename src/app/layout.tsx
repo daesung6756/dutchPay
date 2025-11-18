@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <body
         className={`${noto.variable} antialiased flex min-h-screen flex-col`}
         style={{ minWidth: '280px' }}
