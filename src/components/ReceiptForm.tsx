@@ -112,7 +112,9 @@ export default function ReceiptForm() {
       computedParticipants = participants.map((p) => {
         const extra = rem > 0 ? 1 : 0;
         if (rem > 0) rem -= 1;
-        return { id: p.id, name: p.name, share: base + extra };
+        const rawDed = (p as any).deduction;
+        const ded = typeof rawDed === 'number' ? rawDed : (rawDed === '' || rawDed == null ? 0 : Number(rawDed));
+        return { id: p.id, name: p.name, share: base + extra, deduction: ded };
       });
     }
 
