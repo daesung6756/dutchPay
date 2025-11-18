@@ -1,5 +1,6 @@
 # Ignore SECURITY notes
 docs/SECURITY.md
+docs/MOBILE_TEST_CHECKLIST.md
 
 # Node / Next common ignores
 node_modules/
