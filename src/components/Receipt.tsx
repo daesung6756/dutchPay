@@ -27,6 +27,22 @@ export default function Receipt() {
     }
   }
 
+  function maskLastChar(name?: string) {
+    if (!name) return name || '';
+    try {
+      const s = String(name);
+      let last = -1;
+      for (let i = s.length - 1; i >= 0; i--) {
+        if (s[i] !== ' ' && s[i] !== '\t' && s[i] !== '\n') { last = i; break; }
+      }
+      if (last === -1) return s;
+      if (last === 0) return '*' + s.slice(1);
+      return s.slice(0, last) + '*' + s.slice(last + 1);
+    } catch (e) {
+      return name || '';
+    }
+  }
+
   async function copyAccount() {
     const txt = accountNumber ? `${accountNumber}` : "";
     if (!txt) {
@@ -77,12 +93,22 @@ export default function Receipt() {
               )}
 
               <div className="mt-3 space-y-1 border-b border-dashed border-slate-200 pb-4">
-                {participants.map((p) => (
-                  <div key={p.id} className="flex justify-between text-sm">
-                    <div className="font-medium">{p.name || '참여자'}</div>
-                    <div className="text-slate-600">{typeof p.share === "number" ? `${p.share.toLocaleString()}원` : "-"}</div>
-                  </div>
-                ))}
+                {participants.map((p) => {
+                  const shareNum = typeof p.share === 'number' ? p.share : 0;
+                  const ded = typeof p.deduction === 'number' ? p.deduction : (p.deduction === '' || p.deduction == null ? 0 : Number(p.deduction));
+                  const finalAmount = Math.max(0, shareNum - (Number.isFinite(ded) ? ded : 0));
+                  return (
+                    <div key={p.id} className="flex justify-between text-sm items-center">
+                      <div className="font-medium">{maskLastChar(p.name) || '참여자'}</div>
+                      <div className="text-slate-600 flex items-center gap-2">
+                        {ded > 0 && (
+                          <span className="text-red-600">차감금액: {ded.toLocaleString()}원</span>
+                        )}
+                        <span className="font-medium">{finalAmount.toLocaleString()}원</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {(accountBank || accountNumber) && (

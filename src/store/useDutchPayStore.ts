@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type Participant = { id: string; name: string; share?: number };
+type Participant = { id: string; name: string; share?: number; deduction?: number | '' };
 type DetailItem = { id: string; title: string; amount: string };
 
 export type DutchPayState = {
@@ -27,6 +27,7 @@ export type DutchPayState = {
   addParticipant: (p?: Partial<Participant>) => void;
   removeParticipant: (id: string) => void;
   updateParticipantName: (id: string, name: string) => void;
+  updateParticipantDeduction: (id: string, value: number | '') => void;
 
   setDetailItems: (d: DetailItem[]) => void;
   addDetailItem: () => void;
@@ -69,9 +70,10 @@ export const useDutchPayStore = create<DutchPayState>()((set, get) => ({
     setTotal: (v: number | '') => set({ total: v }),
     setParticipants: (p: Participant[]) => set({ participants: p }),
     addParticipant: (p?: Partial<Participant>) =>
-      set((s: DutchPayState) => ({ participants: [...s.participants, { id: `p${s.participants.length + 1}`, name: p?.name ?? '' }] })),
+      set((s: DutchPayState) => ({ participants: [...s.participants, { id: `p${s.participants.length + 1}`, name: p?.name ?? '', deduction: p?.deduction ?? '' }] })),
     removeParticipant: (id: string) => set((s: DutchPayState) => ({ participants: s.participants.filter((x: Participant) => x.id !== id).map((p: Participant, i: number) => ({ ...p, id: `p${i + 1}` })) })),
     updateParticipantName: (id: string, name: string) => set((s: DutchPayState) => ({ participants: s.participants.map((p: Participant) => (p.id === id ? { ...p, name } : p)) })),
+    updateParticipantDeduction: (id: string, value: number | '') => set((s: DutchPayState) => ({ participants: s.participants.map((p: Participant) => (p.id === id ? { ...p, deduction: value } : p)) })),
 
     setDetailItems: (d: DetailItem[]) => set({ detailItems: d }),
     addDetailItem: () =>

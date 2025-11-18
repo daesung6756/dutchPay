@@ -21,6 +21,7 @@ export default function ReceiptForm() {
   const addParticipant = useDutchPayStore((s) => s.addParticipant);
   const removeParticipant = useDutchPayStore((s) => s.removeParticipant);
   const updateParticipantName = useDutchPayStore((s) => s.updateParticipantName);
+  const updateParticipantDeduction = useDutchPayStore((s) => s.updateParticipantDeduction);
   const accountBank = useDutchPayStore((s) => s.accountBank);
   const setAccountBank = useDutchPayStore((s) => s.setAccountBank);
   const accountNumber = useDutchPayStore((s) => s.accountNumber);
@@ -174,61 +175,6 @@ export default function ReceiptForm() {
     try { await navigator.clipboard.writeText(viewerLink); showToast('뷰어 모드 링크가 복사되었습니다.'); } catch (e) { console.warn('clipboard write failed', e); alert('링크 복사에 실패했습니다.'); }
   }
 
-  async function handleKakaoShare(target: string) {
-    try {
-      if (!target) {
-        alert('링크가 생성되어야 공유할 수 있습니다.');
-        return;
-      }
-      const w = window as any;
-      if (w.Kakao && w.Kakao.Link) {
-        try {
-          w.Kakao.Link.sendDefault({
-            objectType: 'feed',
-            content: {
-              title: title || '더치페이',
-              description: '',
-              link: { mobileWebUrl: target, webUrl: target },
-            },
-            buttons: [{ title: '열기', link: { mobileWebUrl: target, webUrl: target } }],
-          });
-          showToast('카카오톡으로 공유되었습니다.');
-          return;
-        } catch (e) {
-          // fallthrough to fallback
-        }
-      }
-    } catch (e) {}
-    try { window.open(`https://story.kakao.com/share?url=${encodeURIComponent(target)}`, '_blank'); } catch (e) { /* ignore */ }
-  }
-
-  // 쉐어 아이콘 컴퍼넌트: 텍스트 '공유' 버튼 제거, 아이콘형 카카오/트위터/페이스북 + 복사 버튼 유지
-  // 모달에 표시할 소셜 아이콘 그룹 (복사 버튼 제외)
-  function SocialIcons({ linkProp, titleProp }: { linkProp: string; titleProp?: string }) {
-    return (
-      <div className="mt-2 flex justify-center items-center gap-3">
-        {/* Kakao */}
-        <button type="button" aria-label="카카오톡" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } try { handleKakaoShare(linkProp); } catch (e) { window.open(`https://story.kakao.com/share?url=${encodeURIComponent(linkProp)}`, '_blank'); } }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <path d="M12.001 2C6.477 2 2 6.134 2 11.067c0 2.828 1.42 5.39 3.786 7.183L6 22l3.285-1.726A10.35 10.35 0 0012 21.067C17.523 21.067 22 16.934 22 11.067 22 6.134 17.523 2 12.001 2z" />
-          </svg>
-        </button>
-
-        {/* Twitter */}
-        <button type="button" aria-label="트위터" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((titleProp || '더치페이') + ' — ')}&url=${encodeURIComponent(linkProp)}`; window.open(tw, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
-          <Twitter className="w-5 h-5" />
-        </button>
-
-        {/* Facebook */}
-        <button type="button" aria-label="페이스북" onClick={() => { if (!linkProp) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(linkProp)}`; window.open(fb, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
-          <Facebook className="w-5 h-5" />
-        </button>
-      </div>
-    );
-  }
-
-  // (공유 모달을 제거하여 관련 ESC 핸들러 불필요)
-
   return (
     <div className=" min-w-0 md:mt-0 sm:mt-2">
       <style>{`@media (max-width: 320px) { .hide-320 { display: none; } }`}</style>
@@ -253,7 +199,7 @@ export default function ReceiptForm() {
                 <div className="flex items-start gap-2">
                     <div className="flex gap-2 flex-1">
                     <Select value={accountBank} onValueChange={(v: string) => setAccountBank(v === "none" ? "" : v)}>
-                        <SelectTrigger className="min-w-[120px]"><SelectValue placeholder={'계좌 정보'} /></SelectTrigger>
+                        <SelectTrigger className="min-w-max"><SelectValue placeholder={'계좌 정보'} /></SelectTrigger>
                         <SelectContent>
                         <SelectItem value="none">계좌 정보</SelectItem>
                         <SelectItem value="국민은행">국민은행</SelectItem>
@@ -338,6 +284,7 @@ export default function ReceiptForm() {
                   {participants.map((pt) => (
                     <div key={pt.id} className="flex items-center gap-2">
                       <Input className="flex-1" value={pt.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateParticipantName(pt.id, e.target.value)} placeholder={'이름'} />
+                      <Input className="w-28" placeholder={'차감금액'} inputMode="numeric" value={pt.deduction ?? ''} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const digits = e.target.value.replace(/\D/g, ''); updateParticipantDeduction(pt.id, digits === '' ? '' : Number(digits)); }} />
                       <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={() => removeParticipant(pt.id)}>{'삭제'}</Button>
                     </div>
                   ))}
@@ -359,12 +306,12 @@ export default function ReceiptForm() {
 
                             <div className="flex items-center gap-2">
                               {/* Twitter */}
-                              <button type="button" aria-label="트위터로 공유" onClick={() => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((title || '더치페이') + ' — ')}&url=${encodeURIComponent(link)}`; window.open(tw, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+                              <button type="button" aria-label="트위터로 공유" onClick={async () => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent((title || '더치페이') + ' — ')}&url=${encodeURIComponent(link)}`; try { const { safeOpen } = await import('@/lib/safeOpen'); safeOpen(tw); } catch (e) { window.open(tw, '_blank'); } }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
                                 <Twitter className="w-5 h-5" />
                               </button>
 
                               {/* Facebook */}
-                              <button type="button" aria-label="페이스북으로 공유" onClick={() => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`; window.open(fb, '_blank'); }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
+                              <button type="button" aria-label="페이스북으로 공유" onClick={async () => { if (!link) { alert('링크가 생성되어야 공유할 수 있습니다.'); return; } const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`; try { const { safeOpen } = await import('@/lib/safeOpen'); safeOpen(fb); } catch (e) { window.open(fb, '_blank'); } }} className="w-10 h-10 flex items-center justify-center rounded-md bg-slate-200 text-slate-700 hover:bg-slate-300">
                                 <Facebook className="w-5 h-5" />
                               </button>
 

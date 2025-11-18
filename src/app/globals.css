@@ -120,3 +120,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile optimizations: ensure layout remains usable down to 280px */
+@media (max-width: 420px) {
+  html { font-size: 14px; }
+  input, textarea, select, button { font-size: 0.95rem; }
+  .text-2xl { font-size: 1.25rem; }
+}
+
+@media (max-width: 320px) {
+  html { font-size: 13px; }
+  input, textarea, select, button { font-size: 0.9rem; }
+  .text-2xl { font-size: 1.1rem; }
+  /* hide copy label already handled by .hide-320; ensure buttons stay tappable */
+  .w-10.h-10 { width: 2.25rem; height: 2.25rem; }
+}

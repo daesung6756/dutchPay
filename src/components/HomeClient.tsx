@@ -183,7 +183,7 @@ export default function HomeClient() {
 
     return (
         <div className="min-h-screen bg-slate-400 p-4 sm:p-8">
-            <div className="mx-auto w-full max-w-[1440px] bg-white p-4 sm:p-6 rounded-lg shadow-sm px-3 sm:px-4 min-w-[280px]">
+            <div className="mx-auto w-full max-w-[1440px] bg-white p-4 sm:p-6 rounded-lg shadow-sm px-3 sm:px-4 box-border">
 
                 <div className="mb-4">
                     <div>

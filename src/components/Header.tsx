@@ -59,7 +59,7 @@ export default function Header({
       try {
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+          try { const { safeOpen } = await import('@/lib/safeOpen'); safeOpen(url); } catch (e) { window.open(url, '_blank'); }
         setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
         try { st.showToast('새 탭에서 PDF가 열렸습니다.'); } catch (e) {}
       } catch (e) {
