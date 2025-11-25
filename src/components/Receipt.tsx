@@ -123,7 +123,7 @@ export default function Receipt() {
                     <div className="mb-1">{'은행'}: {accountBank ? accountBank + ' ' : ''} </div>
                     <div>{'계좌 번호'}: {accountNumber}</div>
                   </div>
-                  <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-300" onClick={copyAccount}>{'계좌 복사'}</Button>
+                  <Button size="sm" className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-300 no-print" onClick={copyAccount}>{'계좌 복사'}</Button>
                 </div>
               )}
             </div>

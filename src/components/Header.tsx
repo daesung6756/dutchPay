@@ -46,41 +46,14 @@ export default function Header({
   }, []);
 
   const handleSavePDF = async () => {
-    const st = useDutchPayStore.getState();
-    const receiptId = 'receipt';
-    const el = document.getElementById(receiptId);
-    if (!el) {
-      try { window.print(); } catch (e) {}
-      try { st.showToast('영수증 영역을 인쇄합니다.'); } catch (e) {}
-      return;
-    }
-
     try {
-      const html2canvasMod = await import('html2canvas');
-      const html2canvas = (html2canvasMod && (html2canvasMod as any).default) || html2canvasMod;
-      const { jsPDF } = await import('jspdf');
-
-      const canvas = await html2canvas(el as HTMLElement, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/png');
-
-      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const imgProps: any = (pdf as any).getImageProperties ? (pdf as any).getImageProperties(imgData) : { width: canvas.width, height: canvas.height };
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      try {
-        const blob = pdf.output('blob');
-        const url = URL.createObjectURL(blob);
-          try { const { safeOpen } = await import('@/lib/safeOpen'); safeOpen(url); } catch (e) { window.open(url, '_blank'); }
-        setTimeout(() => { try { URL.revokeObjectURL(url); } catch (e) {} }, 60000);
-        try { st.showToast('새 탭에서 PDF가 열렸습니다.'); } catch (e) {}
-      } catch (e) {
-        try { pdf.save('receipt.pdf'); try { st.showToast('PDF 저장을 완료했습니다.'); } catch (e) {} } catch (ee) { console.warn('pdf open/save failed', ee); }
+      const mod = await import('@/lib/pdfCapture');
+      if (mod && typeof mod.generateReceiptPDF === 'function') {
+        await mod.generateReceiptPDF('receipt', { fixedWidth: 600 });
       }
-    } catch (err) {
-      console.warn('html2canvas/jsPDF capture failed, falling back to print', err);
-      try { window.print(); } catch (e) { console.warn('print failed', e); }
+    } catch (e) {
+      try { console.error('[dutchpay:pdf] generateReceiptPDF failed', e); } catch (err) {}
+      try { useDutchPayStore.getState().showToast('PDF 생성에 실패했습니다.'); } catch (ee) {}
     }
   };
 
