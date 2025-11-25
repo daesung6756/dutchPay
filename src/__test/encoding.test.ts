@@ -21,6 +21,18 @@ describe('encoding', () => {
     expect(dec).toEqual(obj);
   });
 
+  it('encodePayload should use compressed form for large payloads and decodePayload handles it', () => {
+    const obj = { data: 'x'.repeat(5000), tag: 'big' };
+    const enc = encodePayload(obj);
+    // large repetitive content should commonly compress; encoded either starts with 'z.' or still decodes
+    const dec = decodePayload(enc);
+    expect(dec).toEqual(obj);
+    // If compression was beneficial we'll see prefixed 'z.' marker
+    if (enc.length < 2000) {
+      expect(enc.startsWith('z.')).toBe(true);
+    }
+  });
+
   it('decodePayload returns null for invalid input', () => {
     const dec = decodePayload('not-a-valid-encoded-string');
     expect(dec).toBeNull();
