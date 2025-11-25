@@ -20,6 +20,7 @@ export default function HomeClient() {
     const setDetailItems = useDutchPayStore((s) => s.setDetailItems);
     const setParticipants = useDutchPayStore((s) => s.setParticipants);
     const setShowForm = useDutchPayStore((s) => s.setShowForm);
+    const setHideHeader = useDutchPayStore((s) => s.setHideHeader);
     const setLoading = useDutchPayStore((s) => s.setLoading);
     const showToast = useDutchPayStore((s) => s.showToast);
     const toasts = useDutchPayStore((s) => s.toasts);
@@ -41,7 +42,13 @@ export default function HomeClient() {
             try {
                 const p = searchParams.get("p");
                 const viewParam = searchParams.get("view");
-                if (viewParam === "1") setShowForm(false);
+                if (viewParam === "1") {
+                    setShowForm(false);
+                    setHideHeader(true);
+                } else {
+                    // ensure header is visible when view param is not set
+                    setHideHeader(false);
+                }
 
                 if (p) {
                     const data = decodePayload(p);
@@ -71,7 +78,7 @@ export default function HomeClient() {
                         }
                         const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}`, deduction: pt.deduction ?? (pt.deduce ?? '') }));
                         setParticipants(parsed);
-                        if (data.meta?.viewerOnly) setShowForm(false);
+                        if (data.meta?.viewerOnly) { setShowForm(false); setHideHeader(true); }
                     }
                 }
 
@@ -108,7 +115,7 @@ export default function HomeClient() {
                             }
                             const parsed: any = (data.participants ?? []).map((pt: any, i: number) => ({ id: pt.id ?? `p${i + 1}`, name: pt.name ?? `참여자 ${i + 1}`, deduction: pt.deduction ?? (pt.deduce ?? '') }));
                             setParticipants(parsed);
-                            if (data.meta?.viewerOnly) setShowForm(false);
+                            if (data.meta?.viewerOnly) { setShowForm(false); setHideHeader(true); }
                         }
                     } catch (e) {
                         console.warn("failed to fetch payload by id", e);

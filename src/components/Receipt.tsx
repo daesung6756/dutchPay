@@ -107,8 +107,10 @@ export default function Receipt() {
                         {ded > 0 && (
                           <span className="text-red-600">-<span className="text-red-600 font-normal">{ded.toLocaleString()}</span><span className="ml-1">원</span></span>
                         )}
-                        <span className="text-lg font-normal text-slate-800">{finalAmount.toLocaleString()}</span>
-                        <span className="ml-1">원</span>
+                        <span>
+                          <span className="text-lg font-normal text-slate-800">{finalAmount.toLocaleString()}</span>
+                          <span className="ml-1">원</span>
+                        </span>
                       </div>
                     </div>
                   );

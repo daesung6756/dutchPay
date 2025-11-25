@@ -11,7 +11,7 @@ const noto = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "더치페이 v1.12",
+  title: "파워 J에게",
   description: "더치페이 - URL로 공유 가능한 분할 결제 생성기",
 };
 
@@ -26,7 +26,7 @@ export default function RootLayout({
         className={`${noto.variable} antialiased flex min-h-screen flex-col`}
         style={{ minWidth: '280px' }}
       >
-          <Header title="LEEDS" />
+          <Header title="J에게" />
           <main className="flex-1">{children}</main>
           <Footer />
       </body>

@@ -26,11 +26,24 @@ export default function Header({
   const router = useRouter();
 
   const loading = useDutchPayStore((s: DutchPayState) => s.loading);
+  const hideHeader = useDutchPayStore((s: DutchPayState) => s.hideHeader);
+  const setHideHeader = useDutchPayStore((s: DutchPayState) => s.setHideHeader);
   const [ready, setReady] = useState<boolean>(false);
 
   useEffect(() => {
     setReady(!loading);
   }, [loading]);
+
+  // On mount, check if the URL has view=1 and hide header immediately to reduce flash
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('view') === '1') setHideHeader(true);
+      }
+    } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSavePDF = async () => {
     const st = useDutchPayStore.getState();
@@ -156,6 +169,8 @@ export default function Header({
     </>
   );
 
+  if (hideHeader) return null;
+
   return (
     <div className={`${className} p-4 w-full sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-slate-200`}> 
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between w-full items-start gap-2 sm:gap-0">
@@ -165,7 +180,7 @@ export default function Header({
               <Skeleton className="h-6 w-48" />
             </div>
           ) : (
-            <h1 className="text-2xl font-semibold truncate">{title}</h1>
+            <h1 className="text-2xl font-semibold whitespace-normal wrap-break-word min-w-[120px]">{title}</h1>
           )}
         </div>
 

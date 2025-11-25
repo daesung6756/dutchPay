@@ -15,6 +15,7 @@ export type DutchPayState = {
   link: string;
   loading: boolean;
   showForm: boolean;
+  hideHeader: boolean;
   detailOpen: boolean;
   toasts: Array<{ id: number; msg: string; duration: number }>;
 
@@ -40,6 +41,7 @@ export type DutchPayState = {
   setLink: (v: string) => void;
   setLoading: (v: boolean) => void;
   setShowForm: (v: boolean) => void;
+  setHideHeader: (v: boolean) => void;
   setDetailOpen: (v: boolean) => void;
 
   showToast: (msg: string, duration?: number) => void;
@@ -60,6 +62,7 @@ export const useDutchPayStore = create<DutchPayState>()((set, get) => ({
     link: '',
     loading: true,
     showForm: true,
+    hideHeader: false,
     detailOpen: false,
     toasts: [],
 
@@ -88,6 +91,7 @@ export const useDutchPayStore = create<DutchPayState>()((set, get) => ({
     setLink: (v: string) => set({ link: v }),
     setLoading: (v: boolean) => set({ loading: v }),
     setShowForm: (v: boolean) => set({ showForm: v }),
+    setHideHeader: (v: boolean) => set({ hideHeader: v }),
     setDetailOpen: (v: boolean) => set({ detailOpen: v }),
 
     showToast: (msg: string, duration = 2000) => {
@@ -114,6 +118,7 @@ export const useDutchPayStore = create<DutchPayState>()((set, get) => ({
         link: '',
         loading: false,
         showForm: true,
+        hideHeader: false,
         detailOpen: false,
         toasts: [],
       }),
